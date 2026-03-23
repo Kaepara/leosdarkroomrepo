@@ -639,12 +639,12 @@
 
         // Click on image to zoom in/out
         lbImgWrap.addEventListener('click', e => {
-            // If we just finished a drag, don't trigger zoom toggle
-            if (lbDragMoved) return;
-
             const clickedOnImage = e.target.tagName === 'IMG' || e.target.tagName === 'CANVAS';
 
             if (clickedOnImage) {
+                // If we just finished a drag, don't trigger zoom toggle
+                if (lbDragMoved) return;
+
                 // Clicked on image - toggle zoom
                 if (lbZoomLevel > 1) {
                     resetLbZoom();
@@ -655,6 +655,7 @@
                 }
             } else if (!e.target.closest('.lb-arrow')) {
                 // Clicked on white space (not arrow, not image) - close lightbox
+                // Always allow closing, even after a drag
                 closeLb();
             }
         });
