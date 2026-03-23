@@ -369,6 +369,21 @@
             .lb-info {
                 font-size: 10px;
                 max-width: 45%;
+                cursor: pointer;
+            }
+
+            .lb-info.expanded {
+                white-space: normal;
+                max-width: 100%;
+                position: absolute;
+                bottom: 70px;
+                left: 16px;
+                right: 16px;
+                background: var(--bg);
+                padding: 12px;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                z-index: 10;
             }
         }
 
@@ -802,11 +817,15 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}   ${counter}`
                 : `${photo.title}   ${counter}`;
+            // Collapse expanded info when changing images
+            lbInfo.classList.remove('expanded');
         }
 
         function closeLb() {
             lb.classList.remove('open');
             document.body.style.overflow = '';
+            // Collapse expanded info when closing
+            lbInfo.classList.remove('expanded');
         }
 
         function lbNav(dir) {
@@ -818,6 +837,14 @@
         document.getElementById('lbClose').addEventListener('click', e => { e.stopPropagation(); closeLb(); });
         document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1); });
         document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1); });
+
+        // Toggle info text expansion on mobile
+        lbInfo.addEventListener('click', e => {
+            if (window.innerWidth <= 480) {
+                e.stopPropagation();
+                lbInfo.classList.toggle('expanded');
+            }
+        });
 
         // Click anywhere in the wrap that isn't an arrow closes the lightbox
         lbImgWrap.addEventListener('click', e => {
