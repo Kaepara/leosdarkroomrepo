@@ -202,10 +202,6 @@
             cursor: default;
         }
 
-        .lb-img-wrap.zoomed {
-            overflow: hidden;
-        }
-
         /* Fixed consistent box — every image lives inside this regardless of resolution.
      Landscape fills width, portrait fills height. Both constrained equally. */
         .lb-img-wrap img,
@@ -215,19 +211,8 @@
             max-height: calc(100vh - 44px - 48px);
             width: auto;
             height: auto;
-            pointer-events: auto;
+            pointer-events: none;
             user-select: none;
-            cursor: zoom-in;
-        }
-
-        .lb-img-wrap.zoomed img,
-        .lb-img-wrap.zoomed canvas {
-            cursor: grab;
-        }
-
-        .lb-img-wrap.zoomed.dragging img,
-        .lb-img-wrap.zoomed.dragging canvas {
-            cursor: grabbing;
         }
 
         .lb-bar {
@@ -569,35 +554,7 @@
         let lbSecId = null;
         let lbIndex = 0;
 
-        // Zoom state
-        let lbZoomLevel = 1;
-        let lbPanX = 0;
-        let lbPanY = 0;
-        let lbIsDragging = false;
-        let lbDragStartX = 0;
-        let lbDragStartY = 0;
-        let lbDragMoved = false; // Track if the mouse actually moved during drag
-
         function currentSec() { return SECTIONS.find(s => s.id === lbSecId); }
-
-        function updateLbTransform() {
-            const img = lbImgWrap.querySelector('img, canvas');
-            if (!img) return;
-            img.style.transform = `scale(${lbZoomLevel}) translate(${lbPanX}px, ${lbPanY}px)`;
-            img.style.transformOrigin = 'center center';
-            img.style.transition = lbIsDragging ? 'none' : 'transform 0.2s';
-        }
-
-        function resetLbZoom() {
-            lbZoomLevel = 1;
-            lbPanX = 0;
-            lbPanY = 0;
-            lbIsDragging = false;
-            lbDragMoved = false;
-            lbImgWrap.classList.remove('zoomed');
-            lbImgWrap.classList.remove('dragging');
-            updateLbTransform();
-        }
 
         function openLb(secId, index) {
             lbSecId = secId;
@@ -621,11 +578,9 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}   ${counter}`
                 : `${photo.title}   ${counter}`;
-            resetLbZoom();
         }
 
         function closeLb() {
-            resetLbZoom();
             lb.classList.remove('open');
             document.body.style.overflow = '';
         }
@@ -640,88 +595,9 @@
         document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1); });
         document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1); });
 
-        // Click on image to zoom in/out
+        // Click anywhere in the wrap that isn't an arrow closes the lightbox
         lbImgWrap.addEventListener('click', e => {
-            const clickedOnImage = e.target.tagName === 'IMG' || e.target.tagName === 'CANVAS';
-
-            if (clickedOnImage) {
-                // If we just finished a drag, don't trigger zoom toggle
-                if (lbDragMoved) return;
-
-                // Clicked on image - toggle zoom
-                if (lbZoomLevel > 1) {
-                    resetLbZoom();
-                } else {
-                    lbZoomLevel = 1.5;
-                    lbImgWrap.classList.add('zoomed');
-                    updateLbTransform();
-                }
-            } else if (!e.target.closest('.lb-arrow')) {
-                // Clicked on white space (not arrow, not image) - close lightbox
-                // Always allow closing, even after a drag
-                closeLb();
-            }
-        });
-
-        // Zoom and pan controls
-        lbImgWrap.addEventListener('wheel', e => {
-            if (!lb.classList.contains('open')) return;
-            // Only allow scroll zoom when already zoomed in
-            if (lbZoomLevel <= 1) return;
-
-            e.preventDefault();
-            const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
-            lbZoomLevel = Math.max(1, Math.min(3, lbZoomLevel + zoomDelta));
-
-            // If zoomed out completely, remove zoomed class
-            if (lbZoomLevel <= 1) {
-                resetLbZoom();
-            } else {
-                lbImgWrap.classList.add('zoomed');
-                updateLbTransform();
-            }
-        }, { passive: false });
-
-        lbImgWrap.addEventListener('mousedown', e => {
-            if (lbZoomLevel <= 1) return;
-
-            // Only start dragging if clicking on the image itself, not white space
-            const clickedOnImage = e.target.tagName === 'IMG' || e.target.tagName === 'CANVAS';
-            if (!clickedOnImage) return;
-
-            lbIsDragging = true;
-            lbDragMoved = false; // Reset the drag moved flag
-            lbDragStartX = e.clientX - lbPanX;
-            lbDragStartY = e.clientY - lbPanY;
-            lbImgWrap.classList.add('dragging');
-            e.preventDefault(); // Prevent text selection
-        });
-
-        document.addEventListener('mousemove', e => {
-            if (!lbIsDragging) return;
-            const newPanX = e.clientX - lbDragStartX;
-            const newPanY = e.clientY - lbDragStartY;
-
-            // Check if we actually moved (threshold of 3px to distinguish from clicks)
-            if (Math.abs(newPanX - lbPanX) > 3 || Math.abs(newPanY - lbPanY) > 3) {
-                lbDragMoved = true;
-            }
-
-            lbPanX = newPanX;
-            lbPanY = newPanY;
-            updateLbTransform();
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (lbIsDragging) {
-                lbIsDragging = false;
-                lbImgWrap.classList.remove('dragging');
-
-                // Reset lbDragMoved after a short delay to allow click handler to check it
-                setTimeout(() => {
-                    lbDragMoved = false;
-                }, 10);
-            }
+            if (!e.target.closest('.lb-arrow')) closeLb();
         });
 
         document.addEventListener('keydown', e => {
