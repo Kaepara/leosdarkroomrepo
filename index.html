@@ -54,11 +54,6 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            position: sticky;
-            top: 0;
-            background: var(--bg);
-            z-index: 100;
-            transition: background-color 0.2s;
         }
 
         @media (max-width: 480px) {
@@ -867,10 +862,9 @@
             }
 
             const meta = [photo.camera, photo.lens, photo.film].filter(Boolean).join(' · ');
-            const counter = `${lbIndex + 1} / ${sec.photos.length}`;
             lbInfo.textContent = meta
-                ? `${photo.title} — ${meta}   ${counter}`
-                : `${photo.title}   ${counter}`;
+                ? `${photo.title} — ${meta}`
+                : photo.title;
             // Collapse expanded info when changing images
             lbInfo.classList.remove('expanded');
         }
