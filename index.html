@@ -592,7 +592,10 @@
             lbZoomLevel = 1;
             lbPanX = 0;
             lbPanY = 0;
+            lbIsDragging = false;
+            lbDragMoved = false;
             lbImgWrap.classList.remove('zoomed');
+            lbImgWrap.classList.remove('dragging');
             updateLbTransform();
         }
 
@@ -663,10 +666,20 @@
         // Zoom and pan controls
         lbImgWrap.addEventListener('wheel', e => {
             if (!lb.classList.contains('open')) return;
+            // Only allow scroll zoom when already zoomed in
+            if (lbZoomLevel <= 1) return;
+
             e.preventDefault();
             const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
-            lbZoomLevel = Math.max(1.5, Math.min(3, lbZoomLevel + zoomDelta));
-            updateLbTransform();
+            lbZoomLevel = Math.max(1, Math.min(3, lbZoomLevel + zoomDelta));
+
+            // If zoomed out completely, remove zoomed class
+            if (lbZoomLevel <= 1) {
+                resetLbZoom();
+            } else {
+                lbImgWrap.classList.add('zoomed');
+                updateLbTransform();
+            }
         }, { passive: false });
 
         lbImgWrap.addEventListener('mousedown', e => {
