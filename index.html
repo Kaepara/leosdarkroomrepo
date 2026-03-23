@@ -25,15 +25,15 @@
         }
 
         body.dark-mode {
-            --bg: #111;
-            --text: #eee;
-            --text-muted: #999;
-            --text-light: #777;
-            --text-lighter: #666;
-            --text-lightest: #888;
-            --border: #222;
-            --card-bg: #1a1a1a;
-            --card-hover: #222;
+            --bg: #000;
+            --text: #fff;
+            --text-muted: #888;
+            --text-light: #666;
+            --text-lighter: #555;
+            --text-lightest: #777;
+            --border: #1a1a1a;
+            --card-bg: #0a0a0a;
+            --card-hover: #151515;
         }
 
         body {
@@ -79,7 +79,7 @@
         }
 
         .theme-toggle {
-            font-size: 12px;
+            font-size: 16px;
             color: var(--text-light);
             background: none;
             border: none;
@@ -88,6 +88,7 @@
             letter-spacing: 0.02em;
             transition: color 0.15s;
             font-family: inherit;
+            line-height: 1;
         }
 
         .theme-toggle:hover {
@@ -243,7 +244,7 @@
             flex-direction: column;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, background-color 0s;
         }
 
         .lb.open {
@@ -259,6 +260,7 @@
             align-items: center;
             justify-content: center;
             cursor: default;
+            transition: background-color 0s;
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -283,12 +285,14 @@
             justify-content: space-between;
             padding: 0 32px;
             flex-shrink: 0;
+            transition: background-color 0s, border-color 0s;
         }
 
         .lb-info {
             font-size: 11px;
             color: var(--text-lightest);
             letter-spacing: 0.03em;
+            transition: none;
         }
 
         .lb-btn {
@@ -300,7 +304,7 @@
             padding: 0;
             font-family: inherit;
             letter-spacing: 0.03em;
-            transition: color 0.15s;
+            transition: none;
         }
 
         .lb-btn:hover {
@@ -318,7 +322,7 @@
             color: var(--text-lighter);
             font-size: 20px;
             line-height: 1;
-            transition: color 0.15s;
+            transition: none;
             z-index: 1;
             user-select: none;
         }
@@ -356,7 +360,7 @@
     <header>
         <a class="site-name" href="#">leosdarkroom</a>
         <nav>
-            <button class="theme-toggle" id="themeToggle">dark</button>
+            <button class="theme-toggle" id="themeToggle">☾</button>
         </nav>
     </header>
 
@@ -371,7 +375,7 @@
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
             <div style="display: flex; gap: 24px;">
-                <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
+                <button class="lb-btn theme-toggle" id="lbThemeToggle">☾</button>
                 <button class="lb-btn" id="lbClose">close</button>
             </div>
         </div>
@@ -394,7 +398,7 @@
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.body.classList.add('dark-mode');
-            updateThemeButtons('light');
+            updateThemeButtons('☀');
         }
 
         function toggleTheme() {
@@ -402,7 +406,7 @@
             const isDark = document.body.classList.contains('dark-mode');
             const theme = isDark ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
-            updateThemeButtons(isDark ? 'light' : 'dark');
+            updateThemeButtons(isDark ? '☀' : '☾');
         }
 
         function updateThemeButtons(label) {
