@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff" id="themeColorMeta">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" id="themeColorLight">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" id="themeColorDark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>leosdarkroom</title>
     <style>
         * {
@@ -51,6 +54,11 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+            transition: background-color 0.2s;
         }
 
         @media (max-width: 480px) {
@@ -511,14 +519,22 @@
 
         const themeToggle = document.getElementById('themeToggle');
         const lbThemeToggle = document.getElementById('lbThemeToggle');
-        const themeColorMeta = document.getElementById('themeColorMeta');
+        const themeColorLight = document.getElementById('themeColorLight');
+        const themeColorDark = document.getElementById('themeColorDark');
+
+        function updateThemeColor(isDark) {
+            const color = isDark ? '#000000' : '#ffffff';
+            // Update both meta tags to override system preference
+            themeColorLight.setAttribute('content', color);
+            themeColorDark.setAttribute('content', color);
+        }
 
         // Check for saved theme preference or default to light mode
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.body.classList.add('dark-mode');
             updateThemeButtons('light');
-            themeColorMeta.setAttribute('content', '#000000');
+            updateThemeColor(true);
         }
 
         function toggleTheme() {
@@ -527,7 +543,7 @@
             const theme = isDark ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
             updateThemeButtons(isDark ? 'light' : 'dark');
-            themeColorMeta.setAttribute('content', isDark ? '#000000' : '#ffffff');
+            updateThemeColor(isDark);
         }
 
         function updateThemeButtons(label) {
