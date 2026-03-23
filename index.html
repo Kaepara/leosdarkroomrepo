@@ -122,6 +122,7 @@
             animation: fadein 0.25s forwards;
             /* Bottom margin provides the consistent gap between items */
             margin-bottom: 20px;
+            border-radius: 4px;
         }
 
         .grid-photo img,
@@ -151,6 +152,7 @@
             background: #f2f2f2;
             opacity: 0;
             animation: fadein 0.25s forwards;
+            border-radius: 4px;
         }
 
         .uw-item img,
@@ -199,6 +201,10 @@
             justify-content: center;
             /* Clicking anywhere in this area closes — image has pointer-events:none */
             cursor: default;
+        }
+
+        .lb-img-wrap.zoomed {
+            overflow: hidden;
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -553,7 +559,39 @@
         let lbSecId = null;
         let lbIndex = 0;
 
+        // Zoom state
+        let lbZoomLevel = 1;
+        let lbPanX = 0;
+        let lbPanY = 0;
+        let lbIsDragging = false;
+        let lbDragStartX = 0;
+        let lbDragStartY = 0;
+
         function currentSec() { return SECTIONS.find(s => s.id === lbSecId); }
+
+        function updateLbTransform() {
+            const img = lbImgWrap.querySelector('img, canvas');
+            if (!img) return;
+            img.style.transform = `scale(${lbZoomLevel}) translate(${lbPanX}px, ${lbPanY}px)`;
+            img.style.transformOrigin = 'center center';
+            img.style.transition = lbIsDragging ? 'none' : 'transform 0.2s';
+            // Update cursor based on zoom state
+            if (lbZoomLevel <= 1) {
+                lbImgWrap.style.cursor = 'default';
+            } else if (lbIsDragging) {
+                lbImgWrap.style.cursor = 'grabbing';
+            } else {
+                lbImgWrap.style.cursor = 'grab';
+            }
+        }
+
+        function resetLbZoom() {
+            lbZoomLevel = 1;
+            lbPanX = 0;
+            lbPanY = 0;
+            lbImgWrap.classList.remove('zoomed');
+            updateLbTransform();
+        }
 
         function openLb(secId, index) {
             lbSecId = secId;
@@ -577,9 +615,11 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}   ${counter}`
                 : `${photo.title}   ${counter}`;
+            resetLbZoom();
         }
 
         function closeLb() {
+            resetLbZoom();
             lb.classList.remove('open');
             document.body.style.overflow = '';
         }
@@ -597,7 +637,43 @@
         // Click anywhere in the wrap that isn't an arrow closes the lightbox.
         // The image itself has pointer-events:none so clicks on it fall through to the wrap.
         lbImgWrap.addEventListener('click', e => {
-            if (!e.target.closest('.lb-arrow')) closeLb();
+            if (!e.target.closest('.lb-arrow')) {
+                // If zoomed, toggle zoom off instead of closing
+                if (lbZoomLevel > 1) {
+                    resetLbZoom();
+                } else {
+                    closeLb();
+                }
+            }
+        });
+
+        // Zoom and pan controls
+        lbImgWrap.addEventListener('wheel', e => {
+            if (!lb.classList.contains('open')) return;
+            e.preventDefault();
+            const zoomDelta = e.deltaY > 0 ? -0.2 : 0.2;
+            lbZoomLevel = Math.max(1, Math.min(3, lbZoomLevel + zoomDelta));
+            lbImgWrap.classList.toggle('zoomed', lbZoomLevel > 1);
+            updateLbTransform();
+        }, { passive: false });
+
+        lbImgWrap.addEventListener('mousedown', e => {
+            if (lbZoomLevel <= 1) return;
+            lbIsDragging = true;
+            lbDragStartX = e.clientX - lbPanX;
+            lbDragStartY = e.clientY - lbPanY;
+            updateLbTransform();
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (!lbIsDragging) return;
+            lbPanX = e.clientX - lbDragStartX;
+            lbPanY = e.clientY - lbDragStartY;
+            updateLbTransform();
+        });
+
+        document.addEventListener('mouseup', () => {
+            lbIsDragging = false;
         });
 
         document.addEventListener('keydown', e => {
