@@ -42,7 +42,7 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 13px;
             font-weight: 400;
-            transition: background-color 0.3s, color 0.3s;
+            transition: none;
         }
 
         header {
@@ -360,7 +360,7 @@
     <header>
         <a class="site-name" href="#">leosdarkroom</a>
         <nav>
-            <button class="theme-toggle" id="themeToggle">☾</button>
+            <button class="theme-toggle" id="themeToggle">dark</button>
         </nav>
     </header>
 
@@ -375,7 +375,7 @@
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
             <div style="display: flex; gap: 24px;">
-                <button class="lb-btn theme-toggle" id="lbThemeToggle">☾</button>
+                <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
                 <button class="lb-btn" id="lbClose">close</button>
             </div>
         </div>
@@ -398,7 +398,7 @@
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.body.classList.add('dark-mode');
-            updateThemeButtons('☀');
+            updateThemeButtons('light');
         }
 
         function toggleTheme() {
@@ -406,7 +406,7 @@
             const isDark = document.body.classList.contains('dark-mode');
             const theme = isDark ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
-            updateThemeButtons(isDark ? '☀' : '☾');
+            updateThemeButtons(isDark ? 'light' : 'dark');
         }
 
         function updateThemeButtons(label) {
