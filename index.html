@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" id="themeColorMeta">
     <title>leosdarkroom</title>
     <style>
         * {
@@ -510,12 +511,14 @@
 
         const themeToggle = document.getElementById('themeToggle');
         const lbThemeToggle = document.getElementById('lbThemeToggle');
+        const themeColorMeta = document.getElementById('themeColorMeta');
 
         // Check for saved theme preference or default to light mode
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.body.classList.add('dark-mode');
             updateThemeButtons('light');
+            themeColorMeta.setAttribute('content', '#000000');
         }
 
         function toggleTheme() {
@@ -524,6 +527,7 @@
             const theme = isDark ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
             updateThemeButtons(isDark ? 'light' : 'dark');
+            themeColorMeta.setAttribute('content', isDark ? '#000000' : '#ffffff');
         }
 
         function updateThemeButtons(label) {
@@ -856,6 +860,15 @@
         }
 
         function closeLb() {
+            // Scroll to the photo that was being viewed
+            const secEl = document.getElementById('sec-' + lbSecId);
+            if (secEl) {
+                const items = secEl.querySelectorAll('.grid-photo, .uw-item');
+                if (items[lbIndex]) {
+                    items[lbIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
             lb.classList.remove('open');
             document.body.style.overflow = '';
             // Collapse expanded info when closing
