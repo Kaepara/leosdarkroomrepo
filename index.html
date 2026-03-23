@@ -231,7 +231,15 @@
 
         .grid-photo.loading,
         .uw-item.loading {
-            animation: pulse 1.5s ease-in-out infinite;
+            animation: pulse 1.5s ease-in-out infinite !important;
+            background-color: var(--card-bg) !important;
+        }
+
+        .grid-photo.loading img,
+        .grid-photo.loading canvas,
+        .uw-item.loading img,
+        .uw-item.loading canvas {
+            opacity: 0;
         }
 
         /* ── LIGHTBOX ── */
