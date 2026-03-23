@@ -199,21 +199,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Clicking anywhere in this area closes — image has pointer-events:none */
             cursor: default;
-        }
-
-        .lb-img-wrap:hover {
-            cursor: zoom-in;
         }
 
         .lb-img-wrap.zoomed {
             overflow: hidden;
-            cursor: grab;
-        }
-
-        .lb-img-wrap.zoomed.dragging {
-            cursor: grabbing;
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -225,8 +215,19 @@
             max-height: calc(100vh - 44px - 48px);
             width: auto;
             height: auto;
-            pointer-events: none;
+            pointer-events: auto;
             user-select: none;
+            cursor: zoom-in;
+        }
+
+        .lb-img-wrap.zoomed img,
+        .lb-img-wrap.zoomed canvas {
+            cursor: grab;
+        }
+
+        .lb-img-wrap.zoomed.dragging img,
+        .lb-img-wrap.zoomed.dragging canvas {
+            cursor: grabbing;
         }
 
         .lb-bar {
@@ -575,6 +576,7 @@
         let lbIsDragging = false;
         let lbDragStartX = 0;
         let lbDragStartY = 0;
+        let lbDragMoved = false; // Track if the mouse actually moved during drag
 
         function currentSec() { return SECTIONS.find(s => s.id === lbSecId); }
 
@@ -635,11 +637,15 @@
         document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1); });
         document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1); });
 
-        // Click anywhere in the wrap that isn't an arrow closes the lightbox.
-        // The image itself has pointer-events:none so clicks on it fall through to the wrap.
+        // Click on image to zoom in/out
         lbImgWrap.addEventListener('click', e => {
-            if (!e.target.closest('.lb-arrow')) {
-                // If zoomed, toggle zoom off; otherwise zoom to 1.5x
+            // If we just finished a drag, don't trigger zoom toggle
+            if (lbDragMoved) return;
+
+            const clickedOnImage = e.target.tagName === 'IMG' || e.target.tagName === 'CANVAS';
+
+            if (clickedOnImage) {
+                // Clicked on image - toggle zoom
                 if (lbZoomLevel > 1) {
                     resetLbZoom();
                 } else {
@@ -647,6 +653,9 @@
                     lbImgWrap.classList.add('zoomed');
                     updateLbTransform();
                 }
+            } else if (!e.target.closest('.lb-arrow')) {
+                // Clicked on white space (not arrow, not image) - close lightbox
+                closeLb();
             }
         });
 
@@ -662,15 +671,25 @@
         lbImgWrap.addEventListener('mousedown', e => {
             if (lbZoomLevel <= 1) return;
             lbIsDragging = true;
+            lbDragMoved = false; // Reset the drag moved flag
             lbDragStartX = e.clientX - lbPanX;
             lbDragStartY = e.clientY - lbPanY;
             lbImgWrap.classList.add('dragging');
+            e.preventDefault(); // Prevent text selection
         });
 
         document.addEventListener('mousemove', e => {
             if (!lbIsDragging) return;
-            lbPanX = e.clientX - lbDragStartX;
-            lbPanY = e.clientY - lbDragStartY;
+            const newPanX = e.clientX - lbDragStartX;
+            const newPanY = e.clientY - lbDragStartY;
+
+            // Check if we actually moved (threshold of 3px to distinguish from clicks)
+            if (Math.abs(newPanX - lbPanX) > 3 || Math.abs(newPanY - lbPanY) > 3) {
+                lbDragMoved = true;
+            }
+
+            lbPanX = newPanX;
+            lbPanY = newPanY;
             updateLbTransform();
         });
 
@@ -678,6 +697,11 @@
             if (lbIsDragging) {
                 lbIsDragging = false;
                 lbImgWrap.classList.remove('dragging');
+
+                // Reset lbDragMoved after a short delay to allow click handler to check it
+                setTimeout(() => {
+                    lbDragMoved = false;
+                }, 10);
             }
         });
 
