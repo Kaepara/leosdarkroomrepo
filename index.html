@@ -325,6 +325,17 @@
             height: auto;
             pointer-events: none;
             user-select: none;
+            will-change: transform;
+        }
+
+        .lb-img-wrap.swiping img,
+        .lb-img-wrap.swiping canvas {
+            transition: none;
+        }
+
+        .lb-img-wrap.snap-back img,
+        .lb-img-wrap.snap-back canvas {
+            transition: transform 0.25s ease-out;
         }
 
         @media (max-width: 480px) {
@@ -803,7 +814,7 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function drawLb() {
+        function drawLb(slideFrom = null) {
             const sec = currentSec();
             const photo = sec.photos[lbIndex];
             const isUw = sec.layout === 'ultrawide';
@@ -811,7 +822,30 @@
             lbImgWrap.querySelectorAll('img, canvas').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, isUw, true);
+
+            // If sliding in from a direction, set initial position
+            if (slideFrom === 'left') {
+                el.style.transform = 'translateX(-30%)';
+                el.style.opacity = '0';
+            } else if (slideFrom === 'right') {
+                el.style.transform = 'translateX(30%)';
+                el.style.opacity = '0';
+            }
+
             lbImgWrap.insertBefore(el, lbImgWrap.firstChild);
+
+            // Animate in if sliding
+            if (slideFrom) {
+                requestAnimationFrame(() => {
+                    el.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                    el.style.transform = '';
+                    el.style.opacity = '';
+                    setTimeout(() => {
+                        el.style.transition = '';
+                    }, 250);
+                });
+            }
+
             const meta = [photo.camera, photo.lens, photo.film].filter(Boolean).join(' · ');
             const counter = `${lbIndex + 1} / ${sec.photos.length}`;
             lbInfo.textContent = meta
@@ -828,15 +862,17 @@
             lbInfo.classList.remove('expanded');
         }
 
-        function lbNav(dir) {
+        function lbNav(dir, animate = false) {
             const sec = currentSec();
             lbIndex = (lbIndex + dir + sec.photos.length) % sec.photos.length;
-            drawLb();
+            // When animating, slide from opposite direction of movement
+            const slideFrom = animate ? (dir > 0 ? 'right' : 'left') : null;
+            drawLb(slideFrom);
         }
 
         document.getElementById('lbClose').addEventListener('click', e => { e.stopPropagation(); closeLb(); });
-        document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1); });
-        document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1); });
+        document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1, true); });
+        document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1, true); });
 
         // Toggle info text expansion on mobile
         lbInfo.addEventListener('click', e => {
@@ -854,43 +890,84 @@
         document.addEventListener('keydown', e => {
             if (!lb.classList.contains('open')) return;
             if (e.key === 'Escape') closeLb();
-            if (e.key === 'ArrowLeft') lbNav(-1);
-            if (e.key === 'ArrowRight') lbNav(1);
+            if (e.key === 'ArrowLeft') lbNav(-1, true);
+            if (e.key === 'ArrowRight') lbNav(1, true);
         });
 
         // ── Swipe gestures for mobile ──
         let touchStartX = 0;
         let touchStartY = 0;
-        let touchEndX = 0;
-        let touchEndY = 0;
+        let touchCurrentX = 0;
+        let isSwiping = false;
+        const swipeThreshold = 80;
 
         lbImgWrap.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
+            touchCurrentX = touchStartX;
+            isSwiping = false;
+            lbImgWrap.classList.remove('snap-back');
+        }, { passive: true });
+
+        lbImgWrap.addEventListener('touchmove', e => {
+            const currentX = e.changedTouches[0].screenX;
+            const currentY = e.changedTouches[0].screenY;
+            const diffX = currentX - touchStartX;
+            const diffY = currentY - touchStartY;
+
+            // Only start swiping if horizontal movement is dominant
+            if (!isSwiping && Math.abs(diffX) > 10) {
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    isSwiping = true;
+                    lbImgWrap.classList.add('swiping');
+                }
+            }
+
+            if (isSwiping) {
+                touchCurrentX = currentX;
+                const img = lbImgWrap.querySelector('img, canvas');
+                if (img) {
+                    // Apply transform with resistance at edges
+                    const resistance = 0.4;
+                    const translateX = diffX * resistance;
+                    img.style.transform = `translateX(${translateX}px)`;
+                }
+            }
         }, { passive: true });
 
         lbImgWrap.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            touchEndY = e.changedTouches[0].screenY;
-            handleSwipe();
-        }, { passive: true });
+            const diffX = touchCurrentX - touchStartX;
+            const img = lbImgWrap.querySelector('img, canvas');
 
-        function handleSwipe() {
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-            const minSwipeDistance = 50;
+            lbImgWrap.classList.remove('swiping');
 
-            // Only handle horizontal swipes (ignore vertical)
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-                if (diffX > 0) {
-                    // Swipe right - go to previous
-                    lbNav(-1);
-                } else {
-                    // Swipe left - go to next
-                    lbNav(1);
+            if (isSwiping && Math.abs(diffX) > swipeThreshold) {
+                // Complete the swipe - slide out and navigate
+                if (img) {
+                    const direction = diffX > 0 ? 1 : -1;
+                    img.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
+                    img.style.transform = `translateX(${direction * window.innerWidth * 0.5}px)`;
+                    img.style.opacity = '0';
+
+                    setTimeout(() => {
+                        if (diffX > 0) {
+                            lbNav(-1, true); // Swipe right - previous
+                        } else {
+                            lbNav(1, true);  // Swipe left - next
+                        }
+                    }, 200);
                 }
+            } else if (isSwiping && img) {
+                // Snap back - didn't swipe far enough
+                lbImgWrap.classList.add('snap-back');
+                img.style.transform = '';
+                setTimeout(() => {
+                    lbImgWrap.classList.remove('snap-back');
+                }, 250);
             }
-        }
+
+            isSwiping = false;
+        }, { passive: true });
     </script>
 </body>
 
