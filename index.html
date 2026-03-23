@@ -282,17 +282,27 @@
             }
         }
 
-        .grid-photo.loading,
-        .uw-item.loading {
-            animation: pulse 1.5s ease-in-out infinite !important;
-            background-color: var(--card-bg) !important;
+        .placeholder {
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 10px;
+            animation: pulse 1.5s ease-in-out infinite;
         }
 
-        .grid-photo.loading img,
-        .grid-photo.loading canvas,
-        .uw-item.loading img,
-        .uw-item.loading canvas {
-            opacity: 0;
+        /* When placeholder and image coexist, stack them */
+        .grid-photo,
+        .uw-item {
+            position: relative;
+        }
+
+        /* When both exist, image overlays placeholder */
+        .grid-photo .placeholder + img,
+        .uw-item .placeholder + img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
         }
 
         /* ── LIGHTBOX ── */
@@ -322,6 +332,15 @@
             justify-content: center;
             cursor: default;
             transition: background-color 0.2s;
+        }
+
+        .lb-placeholder {
+            width: 200px;
+            height: 150px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            animation: pulse 1.5s ease-in-out infinite;
+            position: absolute;
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -748,14 +767,35 @@
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
                 const el = makeEl(photo, isUw, false);
-                item.appendChild(el);
 
-                // Add loading class for real images (not canvas placeholders)
+                // Add loading placeholder for real images
                 if (photo.src && el.tagName === 'IMG') {
-                    item.classList.add('loading');
+                    // Create placeholder with default aspect ratio
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'placeholder';
+                    placeholder.style.aspectRatio = '4 / 3'; // Default until image loads
+                    item.appendChild(placeholder);
+
+                    // Hide image until loaded
+                    el.style.opacity = '0';
+                    el.style.transition = 'opacity 0.3s ease';
+                    item.appendChild(el);
+
                     el.addEventListener('load', () => {
-                        item.classList.remove('loading');
+                        // Update placeholder to match actual image dimensions
+                        const aspectRatio = el.naturalWidth / el.naturalHeight;
+                        placeholder.style.aspectRatio = aspectRatio;
+
+                        // Fade in image and remove placeholder
+                        el.style.opacity = '1';
+                        setTimeout(() => {
+                            placeholder.remove();
+                            // Recalculate grid span
+                            spanItem(item);
+                        }, 300);
                     });
+                } else {
+                    item.appendChild(el);
                 }
 
                 item.addEventListener('click', () => openLb(sec.id, pi));
@@ -839,18 +879,36 @@
             const sec = currentSec();
             const photo = sec.photos[lbIndex];
             const isUw = sec.layout === 'ultrawide';
-            // Remove old image, keep arrow buttons
-            lbImgWrap.querySelectorAll('img, canvas').forEach(el => el.remove());
+            // Remove old image and placeholder, keep arrow buttons
+            lbImgWrap.querySelectorAll('img, canvas, .lb-placeholder').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, isUw, true);
+
+            // For real images, show placeholder while loading
+            if (photo.src && el.tagName === 'IMG') {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'lb-placeholder';
+                lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
+
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.3s ease';
+
+                el.addEventListener('load', () => {
+                    el.style.opacity = '1';
+                    setTimeout(() => {
+                        placeholder.remove();
+                        el.style.transition = '';
+                    }, 300);
+                }, { once: true });
+            }
 
             // If sliding in from a direction, set initial position
             if (slideFrom === 'left') {
                 el.style.transform = 'translateX(-30%)';
-                el.style.opacity = '0';
+                if (!photo.src) el.style.opacity = '0';
             } else if (slideFrom === 'right') {
                 el.style.transform = 'translateX(30%)';
-                el.style.opacity = '0';
+                if (!photo.src) el.style.opacity = '0';
             }
 
             lbImgWrap.insertBefore(el, lbImgWrap.firstChild);
@@ -860,9 +918,9 @@
                 requestAnimationFrame(() => {
                     el.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
                     el.style.transform = '';
-                    el.style.opacity = '';
+                    if (!photo.src) el.style.opacity = '';
                     setTimeout(() => {
-                        el.style.transition = '';
+                        if (!photo.src) el.style.transition = '';
                     }, 250);
                 });
             }
