@@ -122,7 +122,7 @@
             animation: fadein 0.25s forwards;
             /* Bottom margin provides the consistent gap between items */
             margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 10px;
         }
 
         .grid-photo img,
@@ -152,7 +152,7 @@
             background: #f2f2f2;
             opacity: 0;
             animation: fadein 0.25s forwards;
-            border-radius: 4px;
+            border-radius: 10px;
         }
 
         .uw-item img,
@@ -203,8 +203,17 @@
             cursor: default;
         }
 
+        .lb-img-wrap:hover {
+            cursor: zoom-in;
+        }
+
         .lb-img-wrap.zoomed {
             overflow: hidden;
+            cursor: grab;
+        }
+
+        .lb-img-wrap.zoomed.dragging {
+            cursor: grabbing;
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -575,14 +584,6 @@
             img.style.transform = `scale(${lbZoomLevel}) translate(${lbPanX}px, ${lbPanY}px)`;
             img.style.transformOrigin = 'center center';
             img.style.transition = lbIsDragging ? 'none' : 'transform 0.2s';
-            // Update cursor based on zoom state
-            if (lbZoomLevel <= 1) {
-                lbImgWrap.style.cursor = 'default';
-            } else if (lbIsDragging) {
-                lbImgWrap.style.cursor = 'grabbing';
-            } else {
-                lbImgWrap.style.cursor = 'grab';
-            }
         }
 
         function resetLbZoom() {
@@ -638,11 +639,13 @@
         // The image itself has pointer-events:none so clicks on it fall through to the wrap.
         lbImgWrap.addEventListener('click', e => {
             if (!e.target.closest('.lb-arrow')) {
-                // If zoomed, toggle zoom off instead of closing
+                // If zoomed, toggle zoom off; otherwise zoom to 1.5x
                 if (lbZoomLevel > 1) {
                     resetLbZoom();
                 } else {
-                    closeLb();
+                    lbZoomLevel = 1.5;
+                    lbImgWrap.classList.add('zoomed');
+                    updateLbTransform();
                 }
             }
         });
@@ -651,9 +654,8 @@
         lbImgWrap.addEventListener('wheel', e => {
             if (!lb.classList.contains('open')) return;
             e.preventDefault();
-            const zoomDelta = e.deltaY > 0 ? -0.2 : 0.2;
-            lbZoomLevel = Math.max(1, Math.min(3, lbZoomLevel + zoomDelta));
-            lbImgWrap.classList.toggle('zoomed', lbZoomLevel > 1);
+            const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+            lbZoomLevel = Math.max(1.5, Math.min(3, lbZoomLevel + zoomDelta));
             updateLbTransform();
         }, { passive: false });
 
@@ -662,7 +664,7 @@
             lbIsDragging = true;
             lbDragStartX = e.clientX - lbPanX;
             lbDragStartY = e.clientY - lbPanY;
-            updateLbTransform();
+            lbImgWrap.classList.add('dragging');
         });
 
         document.addEventListener('mousemove', e => {
@@ -673,7 +675,10 @@
         });
 
         document.addEventListener('mouseup', () => {
-            lbIsDragging = false;
+            if (lbIsDragging) {
+                lbIsDragging = false;
+                lbImgWrap.classList.remove('dragging');
+            }
         });
 
         document.addEventListener('keydown', e => {
