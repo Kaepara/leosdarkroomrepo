@@ -684,6 +684,11 @@
 
         lbImgWrap.addEventListener('mousedown', e => {
             if (lbZoomLevel <= 1) return;
+
+            // Only start dragging if clicking on the image itself, not white space
+            const clickedOnImage = e.target.tagName === 'IMG' || e.target.tagName === 'CANVAS';
+            if (!clickedOnImage) return;
+
             lbIsDragging = true;
             lbDragMoved = false; // Reset the drag moved flag
             lbDragStartX = e.clientX - lbPanX;
