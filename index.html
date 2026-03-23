@@ -12,12 +12,37 @@
             padding: 0;
         }
 
+        :root {
+            --bg: #fff;
+            --text: #111;
+            --text-muted: #999;
+            --text-light: #bbb;
+            --text-lighter: #ccc;
+            --text-lightest: #aaa;
+            --border: #eee;
+            --card-bg: #f2f2f2;
+            --card-hover: #e8e8e8;
+        }
+
+        body.dark-mode {
+            --bg: #111;
+            --text: #eee;
+            --text-muted: #999;
+            --text-light: #777;
+            --text-lighter: #666;
+            --text-lightest: #888;
+            --border: #222;
+            --card-bg: #1a1a1a;
+            --card-hover: #222;
+        }
+
         body {
-            background: #fff;
-            color: #111;
+            background: var(--bg);
+            color: var(--text);
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 13px;
             font-weight: 400;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         header {
@@ -31,25 +56,42 @@
             font-size: 13px;
             font-weight: 400;
             letter-spacing: 0.02em;
-            color: #111;
+            color: var(--text);
             text-decoration: none;
         }
 
         nav {
             display: flex;
             gap: 24px;
+            align-items: center;
         }
 
         nav a {
             font-size: 12px;
-            color: #999;
+            color: var(--text-muted);
             text-decoration: none;
             letter-spacing: 0.02em;
             transition: color 0.15s;
         }
 
         nav a:hover {
-            color: #111;
+            color: var(--text);
+        }
+
+        .theme-toggle {
+            font-size: 12px;
+            color: var(--text-light);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            letter-spacing: 0.02em;
+            transition: color 0.15s;
+            font-family: inherit;
+        }
+
+        .theme-toggle:hover {
+            color: var(--text);
         }
 
         .filters {
@@ -61,7 +103,7 @@
 
         .f-btn {
             font-size: 12px;
-            color: #bbb;
+            color: var(--text-light);
             background: none;
             border: none;
             cursor: pointer;
@@ -72,11 +114,11 @@
         }
 
         .f-btn:hover {
-            color: #111;
+            color: var(--text);
         }
 
         .f-btn.active {
-            color: #111;
+            color: var(--text);
         }
 
         /* ── SECTIONS ── */
@@ -117,7 +159,7 @@
         .grid-photo {
             cursor: zoom-in;
             overflow: hidden;
-            background: #f2f2f2;
+            background: var(--card-bg);
             opacity: 0;
             animation: fadein 0.25s forwards;
             /* Bottom margin provides the consistent gap between items */
@@ -149,7 +191,7 @@
         .uw-item {
             cursor: zoom-in;
             overflow: hidden;
-            background: #f2f2f2;
+            background: var(--card-bg);
             opacity: 0;
             animation: fadein 0.25s forwards;
             border-radius: 10px;
@@ -178,11 +220,11 @@
 
             0%,
             100% {
-                background-color: #f2f2f2;
+                background-color: var(--card-bg);
             }
 
             50% {
-                background-color: #e8e8e8;
+                background-color: var(--card-hover);
             }
         }
 
@@ -195,7 +237,7 @@
         .lb {
             position: fixed;
             inset: 0;
-            background: #fff;
+            background: var(--bg);
             z-index: 999;
             display: flex;
             flex-direction: column;
@@ -235,7 +277,7 @@
         .lb-bar {
             width: 100%;
             height: 44px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -245,13 +287,13 @@
 
         .lb-info {
             font-size: 11px;
-            color: #aaa;
+            color: var(--text-lightest);
             letter-spacing: 0.03em;
         }
 
         .lb-btn {
             font-size: 11px;
-            color: #aaa;
+            color: var(--text-lightest);
             background: none;
             border: none;
             cursor: pointer;
@@ -262,7 +304,7 @@
         }
 
         .lb-btn:hover {
-            color: #111;
+            color: var(--text);
         }
 
         .lb-arrow {
@@ -273,7 +315,7 @@
             border: none;
             cursor: pointer;
             padding: 20px;
-            color: #ccc;
+            color: var(--text-lighter);
             font-size: 20px;
             line-height: 1;
             transition: color 0.15s;
@@ -282,7 +324,7 @@
         }
 
         .lb-arrow:hover {
-            color: #111;
+            color: var(--text);
         }
 
         .lb-arrow-left {
@@ -296,14 +338,14 @@
         footer {
             padding: 32px 32px 24px;
             margin-top: 32px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
         }
 
         footer p {
             font-size: 11px;
-            color: #ccc;
+            color: var(--text-lighter);
             letter-spacing: 0.03em;
         }
     </style>
@@ -313,6 +355,9 @@
 
     <header>
         <a class="site-name" href="#">leosdarkroom</a>
+        <nav>
+            <button class="theme-toggle" id="themeToggle">dark</button>
+        </nav>
     </header>
 
     <div class="filters" id="filterBar"></div>
@@ -325,7 +370,10 @@
         </div>
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
-            <div><button class="lb-btn" id="lbClose">close</button></div>
+            <div style="display: flex; gap: 24px;">
+                <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
+                <button class="lb-btn" id="lbClose">close</button>
+            </div>
         </div>
     </div>
 
@@ -335,6 +383,36 @@
     </footer>
 
     <script>
+        // ============================================================
+        //  DARK MODE
+        // ============================================================
+
+        const themeToggle = document.getElementById('themeToggle');
+        const lbThemeToggle = document.getElementById('lbThemeToggle');
+
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            updateThemeButtons('light');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            const theme = isDark ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+            updateThemeButtons(isDark ? 'light' : 'dark');
+        }
+
+        function updateThemeButtons(label) {
+            themeToggle.textContent = label;
+            lbThemeToggle.textContent = label;
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+        lbThemeToggle.addEventListener('click', toggleTheme);
+
         // ============================================================
         //  PORTFOLIO CONFIG — edit this to customise your portfolio
         //
