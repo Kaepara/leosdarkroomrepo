@@ -712,17 +712,8 @@
                 // Mark as loaded so it sticks
                 loadedFullImages.set(fullPath, true);
 
-                // Seamlessly swap to full-size with subtle transition
-                imgElement.style.transition = 'opacity 0.15s ease';
-                imgElement.style.opacity = '0.98';
+                // Seamlessly swap with no visible transition
                 imgElement.src = fullPath;
-
-                setTimeout(() => {
-                    imgElement.style.opacity = '1';
-                    setTimeout(() => {
-                        imgElement.style.transition = '';
-                    }, 150);
-                }, 5);
             };
             preloadImg.onerror = () => {
                 preloadedImages.delete(fullPath);
@@ -813,10 +804,12 @@
             const activeSection = document.getElementById('sec-' + btn.dataset.id);
             activeSection.classList.add('active');
 
-            // Prioritize preloading images in the newly active section
-            activeSection.querySelectorAll('img[data-full]').forEach(img => {
-                preloadFullImage(img);
-            });
+            // Prioritize preloading ultrawide images first, then grid images
+            const uwImages = activeSection.querySelectorAll('.uw-strip img[data-full]');
+            const gridImages = activeSection.querySelectorAll('.photo-grid img[data-full]');
+
+            uwImages.forEach(img => preloadFullImage(img));
+            gridImages.forEach(img => preloadFullImage(img));
         });
 
         // ── Row-span masonry ──
