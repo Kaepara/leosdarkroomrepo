@@ -776,48 +776,36 @@
 
                 // Add loading placeholder for real images
                 if (photo.src && el.tagName === 'IMG') {
-                    // Check if image is already cached
+                    item.appendChild(el);
+
+                    // Check if already loaded (cached) - if so, no placeholder needed
                     if (el.complete && el.naturalWidth > 0) {
-                        // Image already loaded, no placeholder needed
-                        item.appendChild(el);
+                        // Already loaded, just show it
                     } else {
-                        // Use a probe image to get dimensions first
-                        const probe = new Image();
-                        probe.src = photo.src;
+                        // Create placeholder
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'placeholder';
+                        placeholder.style.aspectRatio = '3 / 2';
+                        item.insertBefore(placeholder, el);
 
-                        const onDimensionsKnown = () => {
-                            // Create placeholder with exact dimensions
-                            const placeholder = document.createElement('div');
-                            placeholder.className = 'placeholder';
-                            placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
-                            item.appendChild(placeholder);
+                        // Hide image until loaded
+                        el.style.opacity = '0';
+                        el.style.transition = 'opacity 0.3s ease';
 
-                            // Hide image until loaded
-                            el.style.opacity = '0';
-                            el.style.transition = 'opacity 0.3s ease';
-                            item.appendChild(el);
-
-                            // Since probe and el share cache, el may already be loaded
-                            const showImage = () => {
-                                el.style.opacity = '1';
-                                setTimeout(() => {
-                                    placeholder.remove();
-                                    spanItem(item);
-                                }, 300);
-                            };
-
-                            if (el.complete && el.naturalWidth > 0) {
-                                showImage();
-                            } else {
-                                el.addEventListener('load', showImage);
+                        const showImage = () => {
+                            // Update placeholder to match actual dimensions
+                            if (el.naturalWidth > 0) {
+                                placeholder.style.aspectRatio = `${el.naturalWidth} / ${el.naturalHeight}`;
                             }
+                            el.style.opacity = '1';
+                            setTimeout(() => {
+                                placeholder.remove();
+                                spanItem(item);
+                            }, 300);
                         };
 
-                        if (probe.complete && probe.naturalWidth > 0) {
-                            onDimensionsKnown();
-                        } else {
-                            probe.addEventListener('load', onDimensionsKnown);
-                        }
+                        el.addEventListener('load', showImage, { once: true });
+                        el.addEventListener('error', () => placeholder.remove(), { once: true });
                     }
                 } else {
                     item.appendChild(el);
@@ -909,61 +897,26 @@
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, isUw, true);
 
-            // For real images, show placeholder while loading (unless already cached)
+            // For real images, show placeholder while loading (unless cached)
             if (photo.src && el.tagName === 'IMG' && !(el.complete && el.naturalWidth > 0)) {
-                // Use probe to get dimensions for correctly-sized placeholder
-                const probe = new Image();
-                probe.src = photo.src;
-
-                const createPlaceholder = () => {
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'lb-placeholder';
-                    // Calculate display size based on lightbox constraints
-                    const maxW = window.innerWidth - (window.innerWidth <= 480 ? 32 : 160);
-                    const maxH = window.innerHeight - (window.innerWidth <= 480 ? 92 : 92);
-                    const imgRatio = probe.naturalWidth / probe.naturalHeight;
-                    const boxRatio = maxW / maxH;
-
-                    if (imgRatio > boxRatio) {
-                        // Width constrained
-                        placeholder.style.width = Math.min(maxW, probe.naturalWidth) + 'px';
-                        placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
-                    } else {
-                        // Height constrained
-                        placeholder.style.height = Math.min(maxH, probe.naturalHeight) + 'px';
-                        placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
-                    }
-
-                    lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
-                    return placeholder;
-                };
-
-                let placeholder;
-                if (probe.complete && probe.naturalWidth > 0) {
-                    placeholder = createPlaceholder();
-                } else {
-                    // Create temporary placeholder until we know dimensions
-                    placeholder = document.createElement('div');
-                    placeholder.className = 'lb-placeholder';
-                    lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
-
-                    probe.addEventListener('load', () => {
-                        // Replace with correctly-sized placeholder
-                        const newPlaceholder = createPlaceholder();
-                        placeholder.remove();
-                        placeholder = newPlaceholder;
-                    });
-                }
+                const placeholder = document.createElement('div');
+                placeholder.className = 'lb-placeholder';
+                lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
 
                 el.style.opacity = '0';
                 el.style.transition = 'opacity 0.3s ease';
 
-                el.addEventListener('load', () => {
+                const showImage = () => {
                     el.style.opacity = '1';
                     setTimeout(() => {
                         if (placeholder.parentNode) placeholder.remove();
                         el.style.transition = '';
                     }, 300);
+                };
+
+                el.addEventListener('load', showImage, { once: true });
+                el.addEventListener('error', () => {
+                    if (placeholder.parentNode) placeholder.remove();
                 }, { once: true });
             }
 
