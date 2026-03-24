@@ -335,12 +335,18 @@
         }
 
         .lb-placeholder {
-            width: 200px;
-            height: 150px;
+            width: 60vw;
+            max-width: 500px;
+            aspect-ratio: 3 / 2;
             background: var(--card-bg);
             border-radius: 10px;
             animation: pulse 1.5s ease-in-out infinite;
-            position: absolute;
+        }
+
+        @media (max-width: 480px) {
+            .lb-placeholder {
+                width: 80vw;
+            }
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -770,30 +776,49 @@
 
                 // Add loading placeholder for real images
                 if (photo.src && el.tagName === 'IMG') {
-                    // Create placeholder with default aspect ratio
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'placeholder';
-                    placeholder.style.aspectRatio = '4 / 3'; // Default until image loads
-                    item.appendChild(placeholder);
+                    // Check if image is already cached
+                    if (el.complete && el.naturalWidth > 0) {
+                        // Image already loaded, no placeholder needed
+                        item.appendChild(el);
+                    } else {
+                        // Use a probe image to get dimensions first
+                        const probe = new Image();
+                        probe.src = photo.src;
 
-                    // Hide image until loaded
-                    el.style.opacity = '0';
-                    el.style.transition = 'opacity 0.3s ease';
-                    item.appendChild(el);
+                        const onDimensionsKnown = () => {
+                            // Create placeholder with exact dimensions
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'placeholder';
+                            placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+                            item.appendChild(placeholder);
 
-                    el.addEventListener('load', () => {
-                        // Update placeholder to match actual image dimensions
-                        const aspectRatio = el.naturalWidth / el.naturalHeight;
-                        placeholder.style.aspectRatio = aspectRatio;
+                            // Hide image until loaded
+                            el.style.opacity = '0';
+                            el.style.transition = 'opacity 0.3s ease';
+                            item.appendChild(el);
 
-                        // Fade in image and remove placeholder
-                        el.style.opacity = '1';
-                        setTimeout(() => {
-                            placeholder.remove();
-                            // Recalculate grid span
-                            spanItem(item);
-                        }, 300);
-                    });
+                            // Since probe and el share cache, el may already be loaded
+                            const showImage = () => {
+                                el.style.opacity = '1';
+                                setTimeout(() => {
+                                    placeholder.remove();
+                                    spanItem(item);
+                                }, 300);
+                            };
+
+                            if (el.complete && el.naturalWidth > 0) {
+                                showImage();
+                            } else {
+                                el.addEventListener('load', showImage);
+                            }
+                        };
+
+                        if (probe.complete && probe.naturalWidth > 0) {
+                            onDimensionsKnown();
+                        } else {
+                            probe.addEventListener('load', onDimensionsKnown);
+                        }
+                    }
                 } else {
                     item.appendChild(el);
                 }
@@ -884,11 +909,51 @@
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, isUw, true);
 
-            // For real images, show placeholder while loading
-            if (photo.src && el.tagName === 'IMG') {
-                const placeholder = document.createElement('div');
-                placeholder.className = 'lb-placeholder';
-                lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
+            // For real images, show placeholder while loading (unless already cached)
+            if (photo.src && el.tagName === 'IMG' && !(el.complete && el.naturalWidth > 0)) {
+                // Use probe to get dimensions for correctly-sized placeholder
+                const probe = new Image();
+                probe.src = photo.src;
+
+                const createPlaceholder = () => {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'lb-placeholder';
+                    // Calculate display size based on lightbox constraints
+                    const maxW = window.innerWidth - (window.innerWidth <= 480 ? 32 : 160);
+                    const maxH = window.innerHeight - (window.innerWidth <= 480 ? 92 : 92);
+                    const imgRatio = probe.naturalWidth / probe.naturalHeight;
+                    const boxRatio = maxW / maxH;
+
+                    if (imgRatio > boxRatio) {
+                        // Width constrained
+                        placeholder.style.width = Math.min(maxW, probe.naturalWidth) + 'px';
+                        placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+                    } else {
+                        // Height constrained
+                        placeholder.style.height = Math.min(maxH, probe.naturalHeight) + 'px';
+                        placeholder.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+                    }
+
+                    lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
+                    return placeholder;
+                };
+
+                let placeholder;
+                if (probe.complete && probe.naturalWidth > 0) {
+                    placeholder = createPlaceholder();
+                } else {
+                    // Create temporary placeholder until we know dimensions
+                    placeholder = document.createElement('div');
+                    placeholder.className = 'lb-placeholder';
+                    lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
+
+                    probe.addEventListener('load', () => {
+                        // Replace with correctly-sized placeholder
+                        const newPlaceholder = createPlaceholder();
+                        placeholder.remove();
+                        placeholder = newPlaceholder;
+                    });
+                }
 
                 el.style.opacity = '0';
                 el.style.transition = 'opacity 0.3s ease';
@@ -896,7 +961,7 @@
                 el.addEventListener('load', () => {
                     el.style.opacity = '1';
                     setTimeout(() => {
-                        placeholder.remove();
+                        if (placeholder.parentNode) placeholder.remove();
                         el.style.transition = '';
                     }, 300);
                 }, { once: true });
