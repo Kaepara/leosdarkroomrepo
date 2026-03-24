@@ -1,0 +1,11 @@
+{
+  "name": "leosdarkroom",
+  "version": "1.0.0",
+  "description": "Photography portfolio",
+  "scripts": {
+    "build-images": "node build-images.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.2"
+  }
+}

@@ -284,9 +284,11 @@
 
         .placeholder {
             width: 100%;
-            background: var(--card-bg);
+            height: auto;
+            display: block;
             border-radius: 10px;
-            animation: pulse 1.5s ease-in-out infinite;
+            filter: blur(10px);
+            transform: scale(1.05);
         }
 
         /* When placeholder and image coexist, stack them */
@@ -335,17 +337,20 @@
         }
 
         .lb-placeholder {
-            width: 60vw;
-            max-width: 500px;
-            aspect-ratio: 3 / 2;
-            background: var(--card-bg);
+            display: block;
+            max-width: calc(100vw - 160px);
+            max-height: calc(100vh - 44px - 48px);
+            width: auto;
+            height: auto;
             border-radius: 10px;
-            animation: pulse 1.5s ease-in-out infinite;
+            filter: blur(20px);
+            transform: scale(1.1);
         }
 
         @media (max-width: 480px) {
             .lb-placeholder {
-                width: 80vw;
+                max-width: calc(100vw - 32px);
+                max-height: calc(100vh - 60px - 32px);
             }
         }
 
@@ -583,9 +588,15 @@
         // ============================================================
         //  PORTFOLIO CONFIG — edit this to customise your portfolio
         //
+        //  IMAGE FOLDER STRUCTURE:
+        //    images/full/        - Original high-resolution images
+        //    images/compressed/  - Optimized web versions (auto-generated)
+        //    images/placeholders/ - Tiny blurry previews (auto-generated)
+        //
         //  HOW TO ADD YOUR OWN IMAGES:
-        //  1. Put your image files in the same folder as this HTML file
-        //  2. Set  src: 'your-filename.jpg'  for each photo
+        //  1. Put your original image files in images/full/
+        //  2. Run: npm run build-images (generates compressed + placeholders)
+        //  3. Add the filename to your section below
         //
         //  HOW TO ADD A NEW SECTION:
         //  Copy one of the section objects below and add it to the
@@ -599,6 +610,24 @@
         //    camera: camera body — omit to hide
         //    lens:   lens used — omit to hide
         // ============================================================
+
+        // Image paths configuration
+        const IMAGE_PATHS = {
+            compressed: 'images/compressed/',
+            placeholders: 'images/placeholders/',
+            full: 'images/full/'
+        };
+
+        // Helper to get image paths
+        function getImagePaths(filename) {
+            // Convert filename to webp for compressed/placeholder versions
+            const baseName = filename.replace(/\.[^.]+$/, '');
+            return {
+                compressed: IMAGE_PATHS.compressed + baseName + '.webp',
+                placeholder: IMAGE_PATHS.placeholders + baseName + '.webp',
+                full: IMAGE_PATHS.full + filename
+            };
+        }
 
         const SECTIONS = [
             {
@@ -743,9 +772,13 @@
 
         function makeEl(photo, isUltrawide, forLightbox) {
             if (photo.src) {
+                const paths = getImagePaths(photo.src);
                 const img = document.createElement('img');
-                img.src = photo.src;
+                // Use compressed version for display
+                img.src = paths.compressed;
                 img.alt = photo.title;
+                img.dataset.placeholder = paths.placeholder;
+                img.dataset.full = paths.full;
                 if (!forLightbox) img.loading = 'lazy';
                 return img;
             }
@@ -782,21 +815,19 @@
                     if (el.complete && el.naturalWidth > 0) {
                         // Already loaded, just show it
                     } else {
-                        // Create placeholder
-                        const placeholder = document.createElement('div');
+                        // Create placeholder using tiny blurry image
+                        const placeholder = document.createElement('img');
                         placeholder.className = 'placeholder';
-                        placeholder.style.aspectRatio = '3 / 2';
+                        placeholder.src = el.dataset.placeholder;
+                        placeholder.alt = '';
+                        placeholder.draggable = false;
                         item.insertBefore(placeholder, el);
 
-                        // Hide image until loaded
+                        // Hide main image until loaded
                         el.style.opacity = '0';
                         el.style.transition = 'opacity 0.3s ease';
 
                         const showImage = () => {
-                            // Update placeholder to match actual dimensions
-                            if (el.naturalWidth > 0) {
-                                placeholder.style.aspectRatio = `${el.naturalWidth} / ${el.naturalHeight}`;
-                            }
                             el.style.opacity = '1';
                             setTimeout(() => {
                                 placeholder.remove();
@@ -899,8 +930,11 @@
 
             // For real images, show placeholder while loading (unless cached)
             if (photo.src && el.tagName === 'IMG' && !(el.complete && el.naturalWidth > 0)) {
-                const placeholder = document.createElement('div');
+                const placeholder = document.createElement('img');
                 placeholder.className = 'lb-placeholder';
+                placeholder.src = el.dataset.placeholder;
+                placeholder.alt = '';
+                placeholder.draggable = false;
                 lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
 
                 el.style.opacity = '0';
