@@ -700,7 +700,16 @@
 
         function preloadFullImage(imgElement) {
             const fullPath = imgElement.dataset.full;
-            if (!fullPath || preloadedImages.has(fullPath)) return;
+            if (!fullPath) return;
+
+            // If already loaded, swap immediately
+            if (loadedFullImages.has(fullPath)) {
+                imgElement.src = fullPath;
+                return;
+            }
+
+            // If already preloading, don't start again
+            if (preloadedImages.has(fullPath)) return;
 
             preloadedImages.add(fullPath);
 
