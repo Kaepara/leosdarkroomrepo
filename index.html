@@ -680,8 +680,12 @@
         function makeEl(photo, isUltrawide, forLightbox) {
             const paths = getImagePaths(photo.src);
             const img = document.createElement('img');
-            // Use compressed version for display
-            img.src = paths.compressed;
+            // For lightbox, use full-size if already loaded; otherwise use compressed
+            if (forLightbox && loadedFullImages.has(paths.full)) {
+                img.src = paths.full;
+            } else {
+                img.src = paths.compressed;
+            }
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
             img.dataset.full = paths.full;
@@ -691,6 +695,8 @@
 
         // Track preloaded images to avoid duplicate requests
         const preloadedImages = new Set();
+        // Track which full-size images are loaded so they "stick"
+        const loadedFullImages = new Map();
 
         function preloadFullImage(imgElement) {
             const fullPath = imgElement.dataset.full;
@@ -703,20 +709,20 @@
                 // Full image loaded - check if element still exists in DOM
                 if (!imgElement.parentNode) return;
 
-                // Set transition for smooth fade
-                imgElement.style.transition = 'opacity 0.4s ease';
-                imgElement.style.opacity = '0.8';
+                // Mark as loaded so it sticks
+                loadedFullImages.set(fullPath, true);
 
-                // Replace with full-size image
+                // Seamlessly swap to full-size with subtle transition
+                imgElement.style.transition = 'opacity 0.15s ease';
+                imgElement.style.opacity = '0.98';
                 imgElement.src = fullPath;
 
-                // Fade back to full opacity
                 setTimeout(() => {
                     imgElement.style.opacity = '1';
                     setTimeout(() => {
                         imgElement.style.transition = '';
-                    }, 400);
-                }, 10);
+                    }, 150);
+                }, 5);
             };
             preloadImg.onerror = () => {
                 preloadedImages.delete(fullPath);
@@ -804,7 +810,13 @@
             document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById('sec-' + btn.dataset.id).classList.add('active');
+            const activeSection = document.getElementById('sec-' + btn.dataset.id);
+            activeSection.classList.add('active');
+
+            // Prioritize preloading images in the newly active section
+            activeSection.querySelectorAll('img[data-full]').forEach(img => {
+                preloadFullImage(img);
+            });
         });
 
         // ── Row-span masonry ──
@@ -855,48 +867,24 @@
             const sec = currentSec();
             const photo = sec.photos[lbIndex];
             const isUw = sec.layout === 'ultrawide';
-            // Remove old image and placeholder, keep arrow buttons
-            lbImgWrap.querySelectorAll('img, .lb-placeholder').forEach(el => el.remove());
+            // Remove old image, keep arrow buttons
+            lbImgWrap.querySelectorAll('img').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, isUw, true);
 
-            // Show placeholder while loading (unless cached)
-            if (!(el.complete && el.naturalWidth > 0)) {
-                const placeholder = document.createElement('img');
-                placeholder.className = 'lb-placeholder';
-                placeholder.src = el.dataset.placeholder;
-                placeholder.alt = '';
-                placeholder.draggable = false;
-                lbImgWrap.insertBefore(placeholder, lbImgWrap.firstChild);
-
-                el.style.opacity = '0';
-                el.style.transition = 'opacity 0.3s ease, transform 0.25s ease-out';
-
-                const showImage = () => {
-                    el.style.opacity = '1';
-                    setTimeout(() => {
-                        if (placeholder.parentNode) placeholder.remove();
-                        el.style.transition = '';
-                        // Start preloading full-size image after compressed is visible
-                        preloadFullImage(el);
-                    }, 300);
-                };
-
-                el.addEventListener('load', showImage, { once: true });
-                el.addEventListener('error', () => {
-                    if (placeholder.parentNode) placeholder.remove();
-                    // Still preload full-size even if compressed failed
-                    preloadFullImage(el);
-                }, { once: true });
-            }
-
-            // If sliding in from a direction, set initial position
-            if (slideFrom === 'left') {
-                el.style.transform = 'translateX(-30%)';
-                el.style.opacity = '0';
-            } else if (slideFrom === 'right') {
-                el.style.transform = 'translateX(30%)';
-                el.style.opacity = '0';
+            // Set up transitions - no fade for initial open, only for navigation
+            if (!slideFrom) {
+                el.style.transition = '';
+                el.style.opacity = '1';
+            } else {
+                el.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                if (slideFrom === 'left') {
+                    el.style.transform = 'translateX(-30%)';
+                    el.style.opacity = '0';
+                } else if (slideFrom === 'right') {
+                    el.style.transform = 'translateX(30%)';
+                    el.style.opacity = '0';
+                }
             }
 
             lbImgWrap.insertBefore(el, lbImgWrap.firstChild);
@@ -904,7 +892,6 @@
             // Animate in if sliding
             if (slideFrom) {
                 requestAnimationFrame(() => {
-                    el.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
                     el.style.transform = '';
                     el.style.opacity = '';
                     setTimeout(() => {
@@ -912,6 +899,9 @@
                     }, 250);
                 });
             }
+
+            // Start preloading full-size (seamless upgrade if already available)
+            preloadFullImage(el);
 
             const meta = [photo.camera, photo.lens, photo.film].filter(Boolean).join(' · ');
             lbInfo.textContent = meta
