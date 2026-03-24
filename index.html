@@ -739,7 +739,10 @@
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    preloadFullImage(img);
+                    // Only preload full-size after compressed is loaded
+                    if (img.complete && img.naturalWidth > 0) {
+                        preloadFullImage(img);
+                    }
                 }
             });
         }, { rootMargin: '200px' });
@@ -813,11 +816,43 @@
         });
 
         // Preload ultrawide and grid images in the initially active section
+        // Wait for compressed images to load first, then preload full-size
         const initialSection = document.getElementById('sec-' + SECTIONS[0].id);
-        const initialUwImages = initialSection.querySelectorAll('.uw-strip img[data-full]');
-        const initialGridImages = initialSection.querySelectorAll('.photo-grid img[data-full]');
-        initialUwImages.forEach(img => preloadFullImage(img));
-        initialGridImages.forEach(img => preloadFullImage(img));
+        const waitForCompressedThenPreloadFullSize = (section) => {
+            const allImages = section.querySelectorAll('img[data-full]');
+            let loadedCount = 0;
+
+            const checkAndPreload = () => {
+                const uwImages = section.querySelectorAll('.uw-strip img[data-full]');
+                const gridImages = section.querySelectorAll('.photo-grid img[data-full]');
+
+                // Prioritize ultrawide first, then grid
+                uwImages.forEach(img => {
+                    if (img.complete && img.naturalWidth > 0) {
+                        preloadFullImage(img);
+                    }
+                });
+                gridImages.forEach(img => {
+                    if (img.complete && img.naturalWidth > 0) {
+                        preloadFullImage(img);
+                    }
+                });
+            };
+
+            // Check every 100ms until all compressed images loaded or 10 seconds pass
+            let attempts = 0;
+            const interval = setInterval(() => {
+                const loadedImages = Array.from(allImages).filter(img => img.complete && img.naturalWidth > 0).length;
+                attempts++;
+
+                if (loadedImages === allImages.length || attempts > 100) {
+                    clearInterval(interval);
+                    checkAndPreload();
+                }
+            }, 100);
+        };
+
+        waitForCompressedThenPreloadFullSize(initialSection);
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
@@ -829,12 +864,24 @@
             const activeSection = document.getElementById('sec-' + btn.dataset.id);
             activeSection.classList.add('active');
 
-            // Prioritize preloading ultrawide images first, then grid images
-            const uwImages = activeSection.querySelectorAll('.uw-strip img[data-full]');
-            const gridImages = activeSection.querySelectorAll('.photo-grid img[data-full]');
+            // When switching tabs, wait for all compressed images to load first, then preload full-size
+            const allImages = activeSection.querySelectorAll('img[data-full]');
+            let attempts = 0;
+            const interval = setInterval(() => {
+                const loadedImages = Array.from(allImages).filter(img => img.complete && img.naturalWidth > 0).length;
+                attempts++;
 
-            uwImages.forEach(img => preloadFullImage(img));
-            gridImages.forEach(img => preloadFullImage(img));
+                if (loadedImages === allImages.length || attempts > 100) {
+                    clearInterval(interval);
+
+                    // Prioritize preloading ultrawide images first, then grid images
+                    const uwImages = activeSection.querySelectorAll('.uw-strip img[data-full]');
+                    const gridImages = activeSection.querySelectorAll('.photo-grid img[data-full]');
+
+                    uwImages.forEach(img => preloadFullImage(img));
+                    gridImages.forEach(img => preloadFullImage(img));
+                }
+            }, 100);
         });
 
         // ── Row-span masonry ──
