@@ -689,6 +689,41 @@
             return img;
         }
 
+        // Track preloaded images to avoid duplicate requests
+        const preloadedImages = new Set();
+
+        function preloadFullImage(imgElement) {
+            const fullPath = imgElement.dataset.full;
+            if (!fullPath || preloadedImages.has(fullPath)) return;
+
+            preloadedImages.add(fullPath);
+
+            const preloadImg = new Image();
+            preloadImg.onload = () => {
+                // Full image loaded - check if element still exists in DOM
+                if (!imgElement.parentNode) return;
+
+                // Set transition for smooth fade
+                imgElement.style.transition = 'opacity 0.4s ease';
+                imgElement.style.opacity = '0.8';
+
+                // Replace with full-size image
+                imgElement.src = fullPath;
+
+                // Fade back to full opacity
+                setTimeout(() => {
+                    imgElement.style.opacity = '1';
+                    setTimeout(() => {
+                        imgElement.style.transition = '';
+                    }, 400);
+                }, 10);
+            };
+            preloadImg.onerror = () => {
+                preloadedImages.delete(fullPath);
+            };
+            preloadImg.src = fullPath;
+        }
+
         // ── Render sections and filter tabs ──
         const filterBar = document.getElementById('filterBar');
         const sectionsWrap = document.getElementById('sectionsWrap');
@@ -732,11 +767,17 @@
                             placeholder.remove();
                             el.style.transition = '';
                             spanItem(item);
+                            // Start preloading full-size image after compressed is visible
+                            preloadFullImage(el);
                         }, 300);
                     };
 
                     el.addEventListener('load', showImage, { once: true });
-                    el.addEventListener('error', () => placeholder.remove(), { once: true });
+                    el.addEventListener('error', () => {
+                        placeholder.remove();
+                        // Still preload full-size even if compressed failed
+                        preloadFullImage(el);
+                    }, { once: true });
                 }
 
                 item.addEventListener('click', () => openLb(sec.id, pi));
@@ -836,12 +877,16 @@
                     setTimeout(() => {
                         if (placeholder.parentNode) placeholder.remove();
                         el.style.transition = '';
+                        // Start preloading full-size image after compressed is visible
+                        preloadFullImage(el);
                     }, 300);
                 };
 
                 el.addEventListener('load', showImage, { once: true });
                 el.addEventListener('error', () => {
                     if (placeholder.parentNode) placeholder.remove();
+                    // Still preload full-size even if compressed failed
+                    preloadFullImage(el);
                 }, { once: true });
             }
 
