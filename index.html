@@ -725,6 +725,16 @@
         const filterBar = document.getElementById('filterBar');
         const sectionsWrap = document.getElementById('sectionsWrap');
 
+        // Observe when images come into view to start preloading full-size
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    preloadFullImage(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
         function buildSection(sec) {
             const secEl = document.createElement('div');
             secEl.className = 'section' + (SECTIONS.indexOf(sec) === 0 ? ' active' : '');
@@ -741,6 +751,9 @@
                 const el = makeEl(photo, isUw, false);
 
                 item.appendChild(el);
+
+                // Observe image for visibility to start full-size preload
+                imageObserver.observe(el);
 
                 // Check if already loaded (cached) - if so, no placeholder needed
                 if (el.complete && el.naturalWidth > 0) {
@@ -764,16 +777,12 @@
                             placeholder.remove();
                             el.style.transition = '';
                             spanItem(item);
-                            // Start preloading full-size image after compressed is visible
-                            preloadFullImage(el);
                         }, 300);
                     };
 
                     el.addEventListener('load', showImage, { once: true });
                     el.addEventListener('error', () => {
                         placeholder.remove();
-                        // Still preload full-size even if compressed failed
-                        preloadFullImage(el);
                     }, { once: true });
                 }
 
@@ -793,6 +802,13 @@
             filterBar.appendChild(btn);
             sectionsWrap.appendChild(buildSection(sec));
         });
+
+        // Preload ultrawide and grid images in the initially active section
+        const initialSection = document.getElementById('sec-' + SECTIONS[0].id);
+        const initialUwImages = initialSection.querySelectorAll('.uw-strip img[data-full]');
+        const initialGridImages = initialSection.querySelectorAll('.photo-grid img[data-full]');
+        initialUwImages.forEach(img => preloadFullImage(img));
+        initialGridImages.forEach(img => preloadFullImage(img));
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
