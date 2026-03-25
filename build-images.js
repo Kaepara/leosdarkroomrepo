@@ -37,7 +37,7 @@ function processImage(image, index) {
     const compressedOutput = path.join(COMPRESSED_DIR, `${baseName}.webp`);
     if (!fs.existsSync(compressedOutput)) {
         try {
-            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR}" -o "${baseName}"`, {
+            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR}"`, {
                 stdio: 'pipe'
             });
             console.log(`   ✓ Compressed: ${baseName}.webp`);
@@ -52,7 +52,7 @@ function processImage(image, index) {
     const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`);
     if (!fs.existsSync(placeholderOutput)) {
         try {
-            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR}" -o "${baseName}"`, {
+            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR}"`, {
                 stdio: 'pipe'
             });
             console.log(`   ✓ Placeholder: ${baseName}.webp`);
