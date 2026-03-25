@@ -353,7 +353,7 @@
         .lb-img-wrap img {
             display: block;
             max-width: calc(100vw - 160px);
-            max-height: calc(100vh - 44px - 48px);
+            max-height: calc(100vh - 44px - 48px - 60px);
             width: auto;
             height: auto;
             pointer-events: none;
@@ -372,15 +372,7 @@
         @media (max-width: 480px) {
             .lb-img-wrap img {
                 max-width: calc(100vw - 32px);
-                max-height: calc(100vh - 60px - 32px);
-            }
-        }
-
-        /* iPad and tablet: add padding for portrait images */
-        @media (min-width: 481px) and (max-width: 1024px) and (orientation: portrait) {
-            .lb-img-wrap img {
-                max-width: calc(100vw - 80px);
-                max-height: calc(100vh - 44px - 48px - 40px);
+                max-height: calc(100vh - 60px - 32px - 40px);
             }
         }
 
@@ -415,7 +407,7 @@
             user-select: none;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 1024px) {
             .lb-info {
                 font-size: 10px;
                 max-width: 45%;
@@ -1082,9 +1074,9 @@
         document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1, true); });
         document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1, true); });
 
-        // Toggle info text expansion on mobile
+        // Toggle info text expansion on mobile/tablet
         lbInfo.addEventListener('click', e => {
-            if (window.innerWidth <= 480) {
+            if (window.innerWidth <= 1024) {
                 e.stopPropagation();
                 lbInfo.classList.toggle('expanded');
             }
