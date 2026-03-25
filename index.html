@@ -328,6 +328,10 @@
             justify-content: center;
             cursor: default;
             transition: background-color 0.2s;
+            touch-action: none;
+            -ms-touch-action: none;
+            /* Firefox needs overflow hidden for touch transforms */
+            overflow: hidden;
         }
 
         .lb-placeholder {
@@ -358,15 +362,21 @@
             height: auto;
             pointer-events: none;
             user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
             will-change: transform;
+            /* Firefox needs explicit GPU layer for touch transforms */
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .lb-img-wrap.swiping img {
-            transition: none;
+            transition: none !important;
         }
 
         .lb-img-wrap.snap-back img {
-            transition: transform 0.25s ease-out;
+            transition: transform 0.25s ease-out !important;
         }
 
         @media (max-width: 480px) {
@@ -837,10 +847,10 @@
             } else {
                 el.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
                 if (slideFrom === 'left') {
-                    el.style.transform = 'translateX(-30%)';
+                    el.style.transform = 'translate3d(-30%, 0, 0)';
                     el.style.opacity = '0';
                 } else if (slideFrom === 'right') {
-                    el.style.transform = 'translateX(30%)';
+                    el.style.transform = 'translate3d(30%, 0, 0)';
                     el.style.opacity = '0';
                 }
             }
@@ -850,8 +860,8 @@
             // Animate in if sliding
             if (slideFrom) {
                 requestAnimationFrame(() => {
-                    el.style.transform = '';
-                    el.style.opacity = '';
+                    el.style.transform = 'translate3d(0, 0, 0)';
+                    el.style.opacity = '1';
                     setTimeout(() => {
                         el.style.transition = '';
                     }, 250);
@@ -931,6 +941,11 @@
             touchCurrentX = touchStartX;
             isSwiping = false;
             lbImgWrap.classList.remove('snap-back');
+            // Reset transform for Firefox - ensures GPU layer is ready
+            const img = lbImgWrap.querySelector('img');
+            if (img) {
+                img.style.transform = 'translate3d(0, 0, 0)';
+            }
         }, { passive: true });
 
         lbImgWrap.addEventListener('touchmove', e => {
@@ -954,7 +969,8 @@
                     // Apply transform with resistance at edges
                     const resistance = 0.4;
                     const translateX = diffX * resistance;
-                    img.style.transform = `translateX(${translateX}px)`;
+                    // Use translate3d for Firefox compatibility
+                    img.style.transform = `translate3d(${translateX}px, 0, 0)`;
                 }
             }
 
@@ -973,7 +989,8 @@
                 if (img) {
                     const direction = diffX > 0 ? 1 : -1;
                     img.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
-                    img.style.transform = `translateX(${direction * window.innerWidth * 0.5}px)`;
+                    // Use translate3d for Firefox compatibility
+                    img.style.transform = `translate3d(${direction * window.innerWidth * 0.5}px, 0, 0)`;
                     img.style.opacity = '0';
 
                     setTimeout(() => {
@@ -987,7 +1004,7 @@
             } else if (isSwiping && img) {
                 // Snap back - didn't swipe far enough
                 lbImgWrap.classList.add('snap-back');
-                img.style.transform = '';
+                img.style.transform = 'translate3d(0, 0, 0)';
                 setTimeout(() => {
                     lbImgWrap.classList.remove('snap-back');
                 }, 250);
