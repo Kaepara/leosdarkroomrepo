@@ -440,6 +440,7 @@
             font-family: inherit;
             letter-spacing: 0.03em;
             transition: color 0.2s;
+            text-decoration: none;
         }
 
         .lb-btn:hover {
@@ -523,6 +524,7 @@
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
             <div style="display: flex; gap: 24px;">
+                <a class="lb-btn" id="lbFullRes" href="#" target="_blank">full resolution</a>
                 <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
                 <button class="lb-btn" id="lbClose">close</button>
             </div>
@@ -678,15 +680,13 @@
         //  END OF CONFIG — no need to edit below this line
         // ============================================================
 
-        function makeEl(photo, isUltrawide, forLightbox, isInitialSection = false) {
+        function makeEl(photo, isUltrawide, forLightbox) {
             const paths = getImagePaths(photo.src);
             const img = document.createElement('img');
             // Always use compressed images
             img.src = paths.compressed;
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
-            // Only use lazy loading for images in the initial section; other sections load eagerly
-            if (!forLightbox && isInitialSection) img.loading = 'lazy';
             return img;
         }
 
@@ -698,7 +698,7 @@
 
         // No image observer needed - using compressed images only
 
-        function buildSection(sec, isInitialSection = false) {
+        function buildSection(sec) {
             const secEl = document.createElement('div');
             secEl.className = 'section' + (SECTIONS.indexOf(sec) === 0 ? ' active' : '');
             secEl.id = 'sec-' + sec.id;
@@ -711,7 +711,7 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, isUw, false, isInitialSection);
+                const el = makeEl(photo, isUw, false);
 
                 item.appendChild(el);
 
@@ -760,7 +760,7 @@
             btn.textContent = sec.label;
             btn.dataset.id = sec.id;
             filterBar.appendChild(btn);
-            sectionsWrap.appendChild(buildSection(sec, si === 0));
+            sectionsWrap.appendChild(buildSection(sec));
         });
 
         // No preloading needed - using compressed images only
@@ -808,6 +808,7 @@
         const lb = document.getElementById('lb');
         const lbImgWrap = document.getElementById('lbImgWrap');
         const lbInfo = document.getElementById('lbInfo');
+        const lbFullRes = document.getElementById('lbFullRes');
         let lbSecId = null;
         let lbIndex = 0;
 
@@ -862,6 +863,11 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}`
                 : photo.title;
+
+            // Update full resolution link
+            const paths = getImagePaths(photo.src);
+            lbFullRes.href = paths.full;
+
             // Collapse expanded info when changing images
             lbInfo.classList.remove('expanded');
         }
