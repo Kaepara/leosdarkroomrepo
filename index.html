@@ -622,7 +622,7 @@
         const SECTIONS = [
             {
                 id: 'all',
-                label: 'all',
+                label: 'portfolio',
                 layout: 'grid',
                 photos: [
                     { src: 'IMG_1554.JPG', title: 'interrupt', film: 'Agfa Ultra 100', camera: 'Canon New F-1', lens: 'Canon FD 50mm f/1.4 S.S.C' },
@@ -677,7 +677,7 @@
         //  END OF CONFIG — no need to edit below this line
         // ============================================================
 
-        function makeEl(photo, isUltrawide, forLightbox) {
+        function makeEl(photo, isUltrawide, forLightbox, isInitialSection = false) {
             const paths = getImagePaths(photo.src);
             const img = document.createElement('img');
             // For lightbox, use full-size if already loaded; otherwise use compressed
@@ -689,7 +689,8 @@
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
             img.dataset.full = paths.full;
-            if (!forLightbox) img.loading = 'lazy';
+            // Only use lazy loading for images in the initial section; other sections load eagerly
+            if (!forLightbox && isInitialSection) img.loading = 'lazy';
             return img;
         }
 
@@ -751,7 +752,7 @@
             });
         }, { rootMargin: '200px' });
 
-        function buildSection(sec) {
+        function buildSection(sec, isInitialSection = false) {
             const secEl = document.createElement('div');
             secEl.className = 'section' + (SECTIONS.indexOf(sec) === 0 ? ' active' : '');
             secEl.id = 'sec-' + sec.id;
@@ -764,7 +765,7 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, isUw, false);
+                const el = makeEl(photo, isUw, false, isInitialSection);
 
                 item.appendChild(el);
 
@@ -813,10 +814,10 @@
         SECTIONS.forEach((sec, si) => {
             const btn = document.createElement('button');
             btn.className = 'f-btn' + (si === 0 ? ' active' : '');
-            btn.textContent = sec.label === 'all' ? 'portfolio' : sec.label;
+            btn.textContent = sec.label;
             btn.dataset.id = sec.id;
             filterBar.appendChild(btn);
-            sectionsWrap.appendChild(buildSection(sec));
+            sectionsWrap.appendChild(buildSection(sec, si === 0));
         });
 
         // Step 1: Wait for main page (first section) compressed images to load
