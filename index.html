@@ -681,90 +681,22 @@
         function makeEl(photo, isUltrawide, forLightbox, isInitialSection = false) {
             const paths = getImagePaths(photo.src);
             const img = document.createElement('img');
-            // For lightbox, use full-size if already loaded; otherwise use compressed
-            if (forLightbox && loadedFullImages.has(paths.full)) {
-                img.src = paths.full;
-            } else {
-                img.src = paths.compressed;
-            }
+            // Always use compressed images
+            img.src = paths.compressed;
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
-            img.dataset.full = paths.full;
             // Only use lazy loading for images in the initial section; other sections load eagerly
             if (!forLightbox && isInitialSection) img.loading = 'lazy';
             return img;
         }
 
-        // Track preloaded images to avoid duplicate requests
-        const preloadedImages = new Set();
-        // Track which full-size images are loaded so they "stick"
-        const loadedFullImages = new Map();
-
-        function preloadFullImage(imgElement) {
-            const fullPath = imgElement.dataset.full;
-            if (!fullPath) return;
-
-            // If already loaded, check if we should swap now
-            if (loadedFullImages.has(fullPath)) {
-                imgElement.dataset.fullReady = 'true';
-                // If not in active section, swap immediately
-                const parentSection = imgElement.closest('.section');
-                if (parentSection && !parentSection.classList.contains('active')) {
-                    imgElement.src = fullPath;
-                }
-                return;
-            }
-
-            // If already preloading, don't start again
-            if (preloadedImages.has(fullPath)) return;
-
-            preloadedImages.add(fullPath);
-
-            const preloadImg = new Image();
-            preloadImg.onload = () => {
-                // Full image loaded
-                if (!imgElement.parentNode) return;
-                loadedFullImages.set(fullPath, true);
-                imgElement.dataset.fullReady = 'true';
-
-                // Check if this image is in an active section
-                const parentSection = imgElement.closest('.section');
-                // If NOT in active section, swap immediately
-                if (parentSection && !parentSection.classList.contains('active')) {
-                    imgElement.src = fullPath;
-                }
-                // If in active section, don't swap - wait for upgradeSection on tab switch
-            };
-            preloadImg.onerror = () => {
-                preloadedImages.delete(fullPath);
-            };
-            preloadImg.src = fullPath;
-        }
-
-        // Upgrade all ready images in a section when leaving the view
-        function upgradeSection(sectionEl) {
-            if (!sectionEl) return;
-            sectionEl.querySelectorAll('img[data-full-ready="true"]').forEach(img => {
-                img.src = img.dataset.full;
-            });
-        }
+        // No preloading or upgrading needed - using compressed images only
 
         // ── Render sections and filter tabs ──
         const filterBar = document.getElementById('filterBar');
         const sectionsWrap = document.getElementById('sectionsWrap');
 
-        // Observe when images come into view to start preloading full-size
-        const imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    // Only preload full-size after compressed is loaded
-                    if (img.complete && img.naturalWidth > 0) {
-                        preloadFullImage(img);
-                    }
-                }
-            });
-        }, { rootMargin: '200px' });
+        // No image observer needed - using compressed images only
 
         function buildSection(sec, isInitialSection = false) {
             const secEl = document.createElement('div');
@@ -782,9 +714,6 @@
                 const el = makeEl(photo, isUw, false, isInitialSection);
 
                 item.appendChild(el);
-
-                // Observe image for visibility to start full-size preload
-                imageObserver.observe(el);
 
                 // Check if already loaded (cached) - if so, no placeholder needed
                 if (el.complete && el.naturalWidth > 0) {
@@ -834,120 +763,18 @@
             sectionsWrap.appendChild(buildSection(sec, si === 0));
         });
 
-        // Step 1: Wait for main page (first section) compressed images to load
-        const mainSection = document.getElementById('sec-' + SECTIONS[0].id);
-        const mainImages = mainSection.querySelectorAll('img[data-full]');
-
-        const waitForMainCompressed = () => {
-            let attempts = 0;
-            const interval = setInterval(() => {
-                const loadedImages = Array.from(mainImages).filter(img => img.complete && img.naturalWidth > 0).length;
-                attempts++;
-
-                if (loadedImages === mainImages.length || attempts > 100) {
-                    clearInterval(interval);
-                    // Main page compressed loaded, now load all other tabs' compressed
-                    waitForAllOtherCompressed();
-                }
-            }, 100);
-        };
-
-        // Step 2: Load compressed for all other tabs
-        const waitForAllOtherCompressed = () => {
-            const otherSections = SECTIONS.slice(1).map(sec => ({
-                sec,
-                el: document.getElementById('sec-' + sec.id),
-                images: document.querySelectorAll('#sec-' + sec.id + ' img[data-full]')
-            }));
-
-            if (otherSections.length === 0) {
-                // No other sections, go straight to full-size preload
-                preloadAllFullSizes();
-                return;
-            }
-
-            let completedSections = 0;
-
-            otherSections.forEach(section => {
-                let attempts = 0;
-                const interval = setInterval(() => {
-                    const loadedImages = Array.from(section.images).filter(img => img.complete && img.naturalWidth > 0).length;
-                    attempts++;
-
-                    if (loadedImages === section.images.length || attempts > 100) {
-                        clearInterval(interval);
-                        completedSections++;
-
-                        if (completedSections === otherSections.length) {
-                            // All compressed loaded, now preload full-size
-                            preloadAllFullSizes();
-                        }
-                    }
-                }, 100);
-            });
-        };
-
-        // Step 3: Preload full-size images - ultrawide first, then grids (main page first for grids)
-        const preloadAllFullSizes = () => {
-            // First, preload all ultrawide full-size from all sections
-            SECTIONS.forEach(sec => {
-                const secEl = document.getElementById('sec-' + sec.id);
-                const uwImages = secEl.querySelectorAll('.uw-strip img[data-full]');
-                uwImages.forEach(img => preloadFullImage(img));
-            });
-
-            // Then preload all grid full-size, starting with main page
-            const mainGridImages = mainSection.querySelectorAll('.photo-grid img[data-full]');
-            mainGridImages.forEach(img => preloadFullImage(img));
-
-            // Then other sections' grids
-            SECTIONS.slice(1).forEach(sec => {
-                const secEl = document.getElementById('sec-' + sec.id);
-                const gridImages = secEl.querySelectorAll('.photo-grid img[data-full]');
-                gridImages.forEach(img => preloadFullImage(img));
-            });
-        };
-
-        waitForMainCompressed();
+        // No preloading needed - using compressed images only
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
             const btn = e.target.closest('.f-btn');
             if (!btn) return;
 
-            // Upgrade current section before switching
-            const currentActive = document.querySelector('.section.active');
-            if (currentActive) {
-                upgradeSection(currentActive);
-            }
-
             document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             btn.classList.add('active');
             const activeSection = document.getElementById('sec-' + btn.dataset.id);
             activeSection.classList.add('active');
-
-            // Immediately upgrade any ready images in the new section
-            upgradeSection(activeSection);
-
-            // When switching tabs, wait for all compressed images to load first, then preload full-size
-            const allImages = activeSection.querySelectorAll('img[data-full]');
-            let attempts = 0;
-            const interval = setInterval(() => {
-                const loadedImages = Array.from(allImages).filter(img => img.complete && img.naturalWidth > 0).length;
-                attempts++;
-
-                if (loadedImages === allImages.length || attempts > 100) {
-                    clearInterval(interval);
-
-                    // Prioritize preloading ultrawide images first, then grid images
-                    const uwImages = activeSection.querySelectorAll('.uw-strip img[data-full]');
-                    const gridImages = activeSection.querySelectorAll('.photo-grid img[data-full]');
-
-                    uwImages.forEach(img => preloadFullImage(img));
-                    gridImages.forEach(img => preloadFullImage(img));
-                }
-            }, 100);
         });
 
         // ── Row-span masonry ──
@@ -987,10 +814,6 @@
         function currentSec() { return SECTIONS.find(s => s.id === lbSecId); }
 
         function openLb(secId, index) {
-            // Upgrade all images in current section before opening lightbox
-            const secEl = document.getElementById('sec-' + secId);
-            upgradeSection(secEl);
-
             lbSecId = secId;
             lbIndex = index;
             drawLb();
@@ -1034,9 +857,6 @@
                     }, 250);
                 });
             }
-
-            // Start preloading full-size (seamless upgrade if already available)
-            preloadFullImage(el);
 
             const meta = [photo.camera, photo.lens, photo.film].filter(Boolean).join(' · ');
             lbInfo.textContent = meta
