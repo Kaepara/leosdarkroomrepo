@@ -948,6 +948,7 @@
             }
 
             if (isSwiping) {
+                e.preventDefault(); // Prevent default browser behavior
                 touchCurrentX = currentX;
                 const img = lbImgWrap.querySelector('img');
                 if (img) {
@@ -957,7 +958,7 @@
                     img.style.transform = `translateX(${translateX}px)`;
                 }
             }
-        }, { passive: true });
+        });
 
         lbImgWrap.addEventListener('touchend', e => {
             const diffX = touchCurrentX - touchStartX;
