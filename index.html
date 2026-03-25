@@ -703,9 +703,14 @@
             const fullPath = imgElement.dataset.full;
             if (!fullPath) return;
 
-            // If already loaded, mark as ready but don't swap yet
+            // If already loaded, check if we should swap now
             if (loadedFullImages.has(fullPath)) {
                 imgElement.dataset.fullReady = 'true';
+                // If not in active section, swap immediately
+                const parentSection = imgElement.closest('.section');
+                if (parentSection && !parentSection.classList.contains('active')) {
+                    imgElement.src = fullPath;
+                }
                 return;
             }
 
@@ -716,10 +721,18 @@
 
             const preloadImg = new Image();
             preloadImg.onload = () => {
-                // Full image loaded - mark as ready but don't swap
+                // Full image loaded
                 if (!imgElement.parentNode) return;
                 loadedFullImages.set(fullPath, true);
                 imgElement.dataset.fullReady = 'true';
+
+                // Check if this image is in an active section
+                const parentSection = imgElement.closest('.section');
+                // If NOT in active section, swap immediately
+                if (parentSection && !parentSection.classList.contains('active')) {
+                    imgElement.src = fullPath;
+                }
+                // If in active section, don't swap - wait for upgradeSection on tab switch
             };
             preloadImg.onerror = () => {
                 preloadedImages.delete(fullPath);
