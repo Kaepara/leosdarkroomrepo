@@ -1,4 +1,4 @@
-const sharp = require('sharp');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -27,20 +27,19 @@ if (images.length === 0) {
 
 console.log(`Found ${images.length} images to process...\n`);
 
-async function processImage(image, index) {
+function processImage(image, index) {
     const inputPath = path.join(FULL_DIR, image);
     const baseName = path.parse(image).name;
 
     console.log(`[${index + 1}/${images.length}] Processing: ${image}`);
 
-    // Generate compressed version (quality 80, max width 2000px)
+    // Generate compressed version using Squoosh
     const compressedOutput = path.join(COMPRESSED_DIR, `${baseName}.webp`);
     if (!fs.existsSync(compressedOutput)) {
         try {
-            await sharp(inputPath)
-                .resize(2000, null, { withoutEnlargement: true })
-                .webp({ quality: 80 })
-                .toFile(compressedOutput);
+            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR}" -o "${baseName}"`, {
+                stdio: 'pipe'
+            });
             console.log(`   ✓ Compressed: ${baseName}.webp`);
         } catch (err) {
             console.error(`   ✗ Failed to compress: ${err.message}`);
@@ -49,14 +48,13 @@ async function processImage(image, index) {
         console.log(`   ○ Compressed exists: ${baseName}.webp`);
     }
 
-    // Generate placeholder version (quality 20, width 40px)
+    // Generate placeholder version using Squoosh
     const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`);
     if (!fs.existsSync(placeholderOutput)) {
         try {
-            await sharp(inputPath)
-                .resize(40, null)
-                .webp({ quality: 20 })
-                .toFile(placeholderOutput);
+            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR}" -o "${baseName}"`, {
+                stdio: 'pipe'
+            });
             console.log(`   ✓ Placeholder: ${baseName}.webp`);
         } catch (err) {
             console.error(`   ✗ Failed to create placeholder: ${err.message}`);
@@ -66,9 +64,9 @@ async function processImage(image, index) {
     }
 }
 
-async function main() {
+function main() {
     for (let i = 0; i < images.length; i++) {
-        await processImage(images[i], i);
+        processImage(images[i], i);
     }
 
     console.log('\n✓ Done! Images are ready.');
@@ -76,4 +74,4 @@ async function main() {
     console.log(`  Placeholder images: ${PLACEHOLDER_DIR}/`);
 }
 
-main().catch(console.error);
+main();
