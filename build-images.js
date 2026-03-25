@@ -28,16 +28,16 @@ if (images.length === 0) {
 console.log(`Found ${images.length} images to process...\n`);
 
 function processImage(image, index) {
-    const inputPath = path.join(FULL_DIR, image);
+    const inputPath = path.join(FULL_DIR, image).replace(/\\/g, '/');
     const baseName = path.parse(image).name;
 
     console.log(`[${index + 1}/${images.length}] Processing: ${image}`);
 
     // Generate compressed version using Squoosh
-    const compressedOutput = path.join(COMPRESSED_DIR, `${baseName}.webp`);
+    const compressedOutput = path.join(COMPRESSED_DIR, `${baseName}.webp`).replace(/\\/g, '/');
     if (!fs.existsSync(compressedOutput)) {
         try {
-            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR}"`, {
+            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR.replace(/\\/g, '/')}"`, {
                 stdio: 'pipe'
             });
             console.log(`   ✓ Compressed: ${baseName}.webp`);
@@ -49,10 +49,10 @@ function processImage(image, index) {
     }
 
     // Generate placeholder version using Squoosh
-    const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`);
+    const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`).replace(/\\/g, '/');
     if (!fs.existsSync(placeholderOutput)) {
         try {
-            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR}"`, {
+            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR.replace(/\\/g, '/')}"`, {
                 stdio: 'pipe'
             });
             console.log(`   ✓ Placeholder: ${baseName}.webp`);
