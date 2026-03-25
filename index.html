@@ -948,7 +948,6 @@
             }
 
             if (isSwiping) {
-                e.preventDefault(); // Prevent default browser behavior
                 touchCurrentX = currentX;
                 const img = lbImgWrap.querySelector('img');
                 if (img) {
@@ -958,6 +957,9 @@
                     img.style.transform = `translateX(${translateX}px)`;
                 }
             }
+
+            // Always prevent default to stop Firefox touch handling
+            e.preventDefault();
         }, { passive: false });
 
         lbImgWrap.addEventListener('touchend', e => {
