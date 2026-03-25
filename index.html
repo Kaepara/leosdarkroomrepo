@@ -926,6 +926,9 @@
             const activeSection = document.getElementById('sec-' + btn.dataset.id);
             activeSection.classList.add('active');
 
+            // Immediately upgrade any ready images in the new section
+            upgradeSection(activeSection);
+
             // When switching tabs, wait for all compressed images to load first, then preload full-size
             const allImages = activeSection.querySelectorAll('img[data-full]');
             let attempts = 0;
