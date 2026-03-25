@@ -958,7 +958,7 @@
                     img.style.transform = `translateX(${translateX}px)`;
                 }
             }
-        });
+        }, { passive: false });
 
         lbImgWrap.addEventListener('touchend', e => {
             const diffX = touchCurrentX - touchStartX;
