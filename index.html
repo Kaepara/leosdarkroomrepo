@@ -813,50 +813,87 @@
         SECTIONS.forEach((sec, si) => {
             const btn = document.createElement('button');
             btn.className = 'f-btn' + (si === 0 ? ' active' : '');
-            btn.textContent = sec.label;
+            btn.textContent = sec.label === 'all' ? 'portfolio' : sec.label;
             btn.dataset.id = sec.id;
             filterBar.appendChild(btn);
             sectionsWrap.appendChild(buildSection(sec));
         });
 
-        // Preload ultrawide and grid images in the initially active section
-        // Wait for compressed images to load first, then preload full-size
-        const initialSection = document.getElementById('sec-' + SECTIONS[0].id);
-        const waitForCompressedThenPreloadFullSize = (section) => {
-            const allImages = section.querySelectorAll('img[data-full]');
-            let loadedCount = 0;
+        // Step 1: Wait for main page (first section) compressed images to load
+        const mainSection = document.getElementById('sec-' + SECTIONS[0].id);
+        const mainImages = mainSection.querySelectorAll('img[data-full]');
 
-            const checkAndPreload = () => {
-                const uwImages = section.querySelectorAll('.uw-strip img[data-full]');
-                const gridImages = section.querySelectorAll('.photo-grid img[data-full]');
-
-                // Prioritize ultrawide first, then grid
-                uwImages.forEach(img => {
-                    if (img.complete && img.naturalWidth > 0) {
-                        preloadFullImage(img);
-                    }
-                });
-                gridImages.forEach(img => {
-                    if (img.complete && img.naturalWidth > 0) {
-                        preloadFullImage(img);
-                    }
-                });
-            };
-
-            // Check every 100ms until all compressed images loaded or 10 seconds pass
+        const waitForMainCompressed = () => {
             let attempts = 0;
             const interval = setInterval(() => {
-                const loadedImages = Array.from(allImages).filter(img => img.complete && img.naturalWidth > 0).length;
+                const loadedImages = Array.from(mainImages).filter(img => img.complete && img.naturalWidth > 0).length;
                 attempts++;
 
-                if (loadedImages === allImages.length || attempts > 100) {
+                if (loadedImages === mainImages.length || attempts > 100) {
                     clearInterval(interval);
-                    checkAndPreload();
+                    // Main page compressed loaded, now load all other tabs' compressed
+                    waitForAllOtherCompressed();
                 }
             }, 100);
         };
 
-        waitForCompressedThenPreloadFullSize(initialSection);
+        // Step 2: Load compressed for all other tabs
+        const waitForAllOtherCompressed = () => {
+            const otherSections = SECTIONS.slice(1).map(sec => ({
+                sec,
+                el: document.getElementById('sec-' + sec.id),
+                images: document.querySelectorAll('#sec-' + sec.id + ' img[data-full]')
+            }));
+
+            if (otherSections.length === 0) {
+                // No other sections, go straight to full-size preload
+                preloadAllFullSizes();
+                return;
+            }
+
+            let completedSections = 0;
+
+            otherSections.forEach(section => {
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    const loadedImages = Array.from(section.images).filter(img => img.complete && img.naturalWidth > 0).length;
+                    attempts++;
+
+                    if (loadedImages === section.images.length || attempts > 100) {
+                        clearInterval(interval);
+                        completedSections++;
+
+                        if (completedSections === otherSections.length) {
+                            // All compressed loaded, now preload full-size
+                            preloadAllFullSizes();
+                        }
+                    }
+                }, 100);
+            });
+        };
+
+        // Step 3: Preload full-size images - ultrawide first, then grids (main page first for grids)
+        const preloadAllFullSizes = () => {
+            // First, preload all ultrawide full-size from all sections
+            SECTIONS.forEach(sec => {
+                const secEl = document.getElementById('sec-' + sec.id);
+                const uwImages = secEl.querySelectorAll('.uw-strip img[data-full]');
+                uwImages.forEach(img => preloadFullImage(img));
+            });
+
+            // Then preload all grid full-size, starting with main page
+            const mainGridImages = mainSection.querySelectorAll('.photo-grid img[data-full]');
+            mainGridImages.forEach(img => preloadFullImage(img));
+
+            // Then other sections' grids
+            SECTIONS.slice(1).forEach(sec => {
+                const secEl = document.getElementById('sec-' + sec.id);
+                const gridImages = secEl.querySelectorAll('.photo-grid img[data-full]');
+                gridImages.forEach(img => preloadFullImage(img));
+            });
+        };
+
+        waitForMainCompressed();
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
