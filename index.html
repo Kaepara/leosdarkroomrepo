@@ -526,7 +526,6 @@
             <div style="display: flex; gap: 24px;">
                 <a class="lb-btn" id="lbFullRes" href="#" target="_blank">full resolution</a>
                 <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
-                <button class="lb-btn" id="lbClose">close</button>
             </div>
         </div>
     </div>
@@ -896,7 +895,6 @@
             drawLb(slideFrom);
         }
 
-        document.getElementById('lbClose').addEventListener('click', e => { e.stopPropagation(); closeLb(); });
         document.getElementById('lbPrev').addEventListener('click', e => { e.stopPropagation(); lbNav(-1, true); });
         document.getElementById('lbNext').addEventListener('click', e => { e.stopPropagation(); lbNav(1, true); });
 
@@ -928,16 +926,16 @@
         const swipeThreshold = 80;
 
         lbImgWrap.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
             touchCurrentX = touchStartX;
             isSwiping = false;
             lbImgWrap.classList.remove('snap-back');
         }, { passive: true });
 
         lbImgWrap.addEventListener('touchmove', e => {
-            const currentX = e.changedTouches[0].screenX;
-            const currentY = e.changedTouches[0].screenY;
+            const currentX = e.changedTouches[0].clientX;
+            const currentY = e.changedTouches[0].clientY;
             const diffX = currentX - touchStartX;
             const diffY = currentY - touchStartY;
 
