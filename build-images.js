@@ -1,17 +1,14 @@
-const { execSync } = require('child_process');
+const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
 const FULL_DIR = 'images/full';
-const COMPRESSED_DIR = 'images/compressed';
 const PLACEHOLDER_DIR = 'images/placeholders';
 
-// Ensure output directories exist
-[COMPRESSED_DIR, PLACEHOLDER_DIR].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-});
+// Ensure output directory exists
+if (!fs.existsSync(PLACEHOLDER_DIR)) {
+    fs.mkdirSync(PLACEHOLDER_DIR, { recursive: true });
+}
 
 // Get all image files from full directory
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -27,34 +24,20 @@ if (images.length === 0) {
 
 console.log(`Found ${images.length} images to process...\n`);
 
-function processImage(image, index) {
-    const inputPath = path.join(FULL_DIR, image).replace(/\\/g, '/');
+async function processImage(image, index) {
+    const inputPath = path.join(FULL_DIR, image);
     const baseName = path.parse(image).name;
 
     console.log(`[${index + 1}/${images.length}] Processing: ${image}`);
 
-    // Generate compressed version using Squoosh
-    const compressedOutput = path.join(COMPRESSED_DIR, `${baseName}.webp`).replace(/\\/g, '/');
-    if (!fs.existsSync(compressedOutput)) {
-        try {
-            execSync(`npx @squoosh/cli --webp "{quality: 80, effort: 4}" --resize "{width: 2000}" "${inputPath}" -d "${COMPRESSED_DIR.replace(/\\/g, '/')}"`, {
-                stdio: 'pipe'
-            });
-            console.log(`   ✓ Compressed: ${baseName}.webp`);
-        } catch (err) {
-            console.error(`   ✗ Failed to compress: ${err.message}`);
-        }
-    } else {
-        console.log(`   ○ Compressed exists: ${baseName}.webp`);
-    }
-
-    // Generate placeholder version using Squoosh
-    const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`).replace(/\\/g, '/');
+    // Generate placeholder version (quality 20, width 40px)
+    const placeholderOutput = path.join(PLACEHOLDER_DIR, `${baseName}.webp`);
     if (!fs.existsSync(placeholderOutput)) {
         try {
-            execSync(`npx @squoosh/cli --webp "{quality: 20, effort: 4}" --resize "{width: 40}" "${inputPath}" -d "${PLACEHOLDER_DIR.replace(/\\/g, '/')}"`, {
-                stdio: 'pipe'
-            });
+            await sharp(inputPath)
+                .resize(40, null)
+                .webp({ quality: 20, effort: 6 })
+                .toFile(placeholderOutput);
             console.log(`   ✓ Placeholder: ${baseName}.webp`);
         } catch (err) {
             console.error(`   ✗ Failed to create placeholder: ${err.message}`);
@@ -64,14 +47,13 @@ function processImage(image, index) {
     }
 }
 
-function main() {
+async function main() {
     for (let i = 0; i < images.length; i++) {
-        processImage(images[i], i);
+        await processImage(images[i], i);
     }
 
-    console.log('\n✓ Done! Images are ready.');
-    console.log(`  Compressed images: ${COMPRESSED_DIR}/`);
+    console.log('\n✓ Done! Placeholders are ready.');
     console.log(`  Placeholder images: ${PLACEHOLDER_DIR}/`);
 }
 
-main();
+main().catch(console.error);
