@@ -702,9 +702,9 @@
             const fullPath = imgElement.dataset.full;
             if (!fullPath) return;
 
-            // If already loaded, swap immediately
+            // If already loaded, mark as ready but don't swap yet
             if (loadedFullImages.has(fullPath)) {
-                imgElement.src = fullPath;
+                imgElement.dataset.fullReady = 'true';
                 return;
             }
 
@@ -715,19 +715,23 @@
 
             const preloadImg = new Image();
             preloadImg.onload = () => {
-                // Full image loaded - check if element still exists in DOM
+                // Full image loaded - mark as ready but don't swap
                 if (!imgElement.parentNode) return;
-
-                // Mark as loaded so it sticks
                 loadedFullImages.set(fullPath, true);
-
-                // Seamlessly swap with no visible transition
-                imgElement.src = fullPath;
+                imgElement.dataset.fullReady = 'true';
             };
             preloadImg.onerror = () => {
                 preloadedImages.delete(fullPath);
             };
             preloadImg.src = fullPath;
+        }
+
+        // Upgrade all ready images in a section when leaving the view
+        function upgradeSection(sectionEl) {
+            if (!sectionEl) return;
+            sectionEl.querySelectorAll('img[data-full-ready="true"]').forEach(img => {
+                img.src = img.dataset.full;
+            });
         }
 
         // ── Render sections and filter tabs ──
@@ -858,6 +862,13 @@
         filterBar.addEventListener('click', e => {
             const btn = e.target.closest('.f-btn');
             if (!btn) return;
+
+            // Upgrade current section before switching
+            const currentActive = document.querySelector('.section.active');
+            if (currentActive) {
+                upgradeSection(currentActive);
+            }
+
             document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             btn.classList.add('active');
@@ -921,6 +932,10 @@
         function currentSec() { return SECTIONS.find(s => s.id === lbSecId); }
 
         function openLb(secId, index) {
+            // Upgrade all images in current section before opening lightbox
+            const secEl = document.getElementById('sec-' + secId);
+            upgradeSection(secEl);
+
             lbSecId = secId;
             lbIndex = index;
             drawLb();
