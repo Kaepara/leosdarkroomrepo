@@ -704,14 +704,49 @@
         function makeEl(photo, folder) {
             const paths = getImagePaths(photo.src, folder);
             const img = document.createElement('img');
-            // Always use compressed images
-            img.src = paths.compressed;
+            // Store the compressed image path but don't load yet
+            img.dataset.src = paths.compressed;
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
             return img;
         }
 
-        // No preloading or upgrading needed - using compressed images only
+        // Load actual images for a section (called when section becomes active)
+        function loadSectionImages(secId) {
+            const section = document.getElementById('sec-' + secId);
+            if (!section) return;
+            section.querySelectorAll('img[data-src]').forEach(img => {
+                // Hide main image until loaded
+                img.style.opacity = '0';
+                img.style.transition = 'opacity 0.3s ease, transform 0.2s';
+
+                const showImage = () => {
+                    img.style.opacity = '1';
+                    setTimeout(() => {
+                        // Remove placeholder
+                        const placeholder = img.previousElementSibling;
+                        if (placeholder && placeholder.classList.contains('placeholder')) {
+                            placeholder.remove();
+                        }
+                        img.style.transition = '';
+                        const item = img.closest('.grid-photo, .uw-item');
+                        if (item) spanItem(item);
+                    }, 300);
+                };
+
+                img.addEventListener('load', showImage, { once: true });
+                img.addEventListener('error', () => {
+                    const placeholder = img.previousElementSibling;
+                    if (placeholder && placeholder.classList.contains('placeholder')) {
+                        placeholder.remove();
+                    }
+                }, { once: true });
+
+                // Trigger loading
+                img.src = img.dataset.src;
+                delete img.dataset.src;
+            });
+        }
 
         // ── Render sections and filter tabs ──
         const filterBar = document.getElementById('filterBar');
@@ -736,36 +771,13 @@
 
                 item.appendChild(el);
 
-                // Check if already loaded (cached) - if so, no placeholder needed
-                if (el.complete && el.naturalWidth > 0) {
-                    // Already loaded, just show it
-                } else {
-                    // Create placeholder using tiny blurry image
-                    const placeholder = document.createElement('img');
-                    placeholder.className = 'placeholder';
-                    placeholder.src = el.dataset.placeholder;
-                    placeholder.alt = '';
-                    placeholder.draggable = false;
-                    item.insertBefore(placeholder, el);
-
-                    // Hide main image until loaded
-                    el.style.opacity = '0';
-                    el.style.transition = 'opacity 0.3s ease, transform 0.2s';
-
-                    const showImage = () => {
-                        el.style.opacity = '1';
-                        setTimeout(() => {
-                            placeholder.remove();
-                            el.style.transition = '';
-                            spanItem(item);
-                        }, 300);
-                    };
-
-                    el.addEventListener('load', showImage, { once: true });
-                    el.addEventListener('error', () => {
-                        placeholder.remove();
-                    }, { once: true });
-                }
+                // Create placeholder using tiny blurry image - show immediately
+                const placeholder = document.createElement('img');
+                placeholder.className = 'placeholder';
+                placeholder.src = el.dataset.placeholder;
+                placeholder.alt = '';
+                placeholder.draggable = false;
+                item.insertBefore(placeholder, el);
 
                 item.addEventListener('click', () => openLb(sec.id, pi));
                 listEl.appendChild(item);
@@ -781,11 +793,12 @@
             btn.textContent = sec.label;
             btn.dataset.id = sec.id;
             filterBar.appendChild(btn);
-            // Only build the first section initially - others load on demand
-            if (si === 0) {
-                sectionsWrap.appendChild(buildSection(sec));
-            }
+            // Build all sections so placeholders show everywhere
+            sectionsWrap.appendChild(buildSection(sec));
         });
+
+        // Load images for the first section on page load
+        loadSectionImages(SECTIONS[0].id);
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
@@ -797,18 +810,14 @@
             btn.classList.add('active');
 
             const secId = btn.dataset.id;
-            let activeSection = document.getElementById('sec-' + secId);
-
-            // Lazy load: build section if it doesn't exist yet
-            if (!activeSection) {
-                const sec = SECTIONS.find(s => s.id === secId);
-                activeSection = buildSection(sec);
-                sectionsWrap.appendChild(activeSection);
-                // Trigger masonry layout for newly built section
-                setTimeout(spanAll, 50);
-            }
-
+            const activeSection = document.getElementById('sec-' + secId);
             activeSection.classList.add('active');
+
+            // Load images for this section
+            loadSectionImages(secId);
+
+            // Trigger masonry layout
+            setTimeout(spanAll, 50);
         });
 
         // ── Row-span masonry ──
@@ -863,6 +872,12 @@
             lbImgWrap.querySelectorAll('img').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
             const el = makeEl(photo, sec.id);
+
+            // Load the image immediately for lightbox
+            if (el.dataset.src) {
+                el.src = el.dataset.src;
+                delete el.dataset.src;
+            }
 
             // Set up transitions - no fade for initial open, only for navigation
             if (!slideFrom) {
