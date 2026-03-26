@@ -45,6 +45,7 @@ async function processImage(folder, image, index, total) {
     if (!fs.existsSync(placeholderOutput)) {
         try {
             await sharp(inputPath)
+                .rotate() // Auto-rotate based on EXIF orientation
                 .resize(40, 40, {
                     fit: 'inside',
                     withoutEnlargement: true
