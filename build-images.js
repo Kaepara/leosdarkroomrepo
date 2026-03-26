@@ -45,7 +45,10 @@ async function processImage(folder, image, index, total) {
     if (!fs.existsSync(placeholderOutput)) {
         try {
             await sharp(inputPath)
-                .resize(40, null)
+                .resize(40, 40, {
+                    fit: 'inside',
+                    withoutEnlargement: true
+                })
                 .webp({ quality: 20, effort: 6 })
                 .toFile(placeholderOutput);
             console.log(`   ✓ Placeholder: ${baseName}.webp`);
