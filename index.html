@@ -285,20 +285,19 @@
             transform: scale(1.05);
         }
 
-        /* When placeholder and image coexist, stack them */
         .grid-photo,
         .uw-item {
             position: relative;
         }
 
-        /* When both exist, image overlays placeholder */
-        .grid-photo .placeholder+img,
-        .uw-item .placeholder+img {
+        .grid-photo .placeholder + img,
+        .uw-item .placeholder + img {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: auto;
+            transition: opacity 0.3s ease;
         }
 
         /* ── LIGHTBOX ── */
@@ -332,24 +331,6 @@
             -ms-touch-action: none;
             /* Firefox needs overflow hidden for touch transforms */
             overflow: hidden;
-        }
-
-        .lb-placeholder {
-            display: block;
-            max-width: calc(100vw - 160px);
-            max-height: calc(100vh - 44px - 48px);
-            width: auto;
-            height: auto;
-            border-radius: 10px;
-            filter: blur(20px);
-            transform: scale(1.1);
-        }
-
-        @media (max-width: 480px) {
-            .lb-placeholder {
-                max-width: calc(100vw - 32px);
-                max-height: calc(100vh - 60px - 32px);
-            }
         }
 
         /* Fixed consistent box — every image lives inside this regardless of resolution.
@@ -618,7 +599,6 @@
 
         // Helper to get image paths
         function getImagePaths(filename, folder) {
-            // Convert filename to webp for compressed/placeholder versions
             const baseName = filename.replace(/\.[^.]+$/, '');
             return {
                 compressed: IMAGE_PATHS.compressed + folder + '/' + baseName + '.webp',
@@ -695,7 +675,6 @@
         function makeEl(photo, folder) {
             const paths = getImagePaths(photo.src, folder);
             const img = document.createElement('img');
-            // Always use compressed images
             img.src = paths.compressed;
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
@@ -723,40 +702,29 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, sec.label);
 
+                // Create placeholder
+                const placeholder = document.createElement('img');
+                placeholder.className = 'placeholder';
+                placeholder.src = getImagePaths(photo.src, sec.label).placeholder;
+                placeholder.alt = '';
+                placeholder.draggable = false;
+                item.appendChild(placeholder);
+
+                // Create main image (hidden until loaded)
+                const el = makeEl(photo, sec.label);
+                el.style.opacity = '0';
                 item.appendChild(el);
 
-                // Check if already loaded (cached) - if so, no placeholder needed
-                if (el.complete && el.naturalWidth > 0) {
-                    // Already loaded, just show it
-                } else {
-                    // Create placeholder using tiny blurry image
-                    const placeholder = document.createElement('img');
-                    placeholder.className = 'placeholder';
-                    placeholder.src = el.dataset.placeholder;
-                    placeholder.alt = '';
-                    placeholder.draggable = false;
-                    item.insertBefore(placeholder, el);
+                el.addEventListener('load', () => {
+                    el.style.opacity = '1';
+                    placeholder.remove();
+                    spanItem(item);
+                }, { once: true });
 
-                    // Hide main image until loaded
-                    el.style.opacity = '0';
-                    el.style.transition = 'opacity 0.3s ease, transform 0.2s';
-
-                    const showImage = () => {
-                        el.style.opacity = '1';
-                        setTimeout(() => {
-                            placeholder.remove();
-                            el.style.transition = '';
-                            spanItem(item);
-                        }, 300);
-                    };
-
-                    el.addEventListener('load', showImage, { once: true });
-                    el.addEventListener('error', () => {
-                        placeholder.remove();
-                    }, { once: true });
-                }
+                el.addEventListener('error', () => {
+                    placeholder.remove();
+                }, { once: true });
 
                 item.addEventListener('click', () => openLb(sec.id, pi));
                 listEl.appendChild(item);
