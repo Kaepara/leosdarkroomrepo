@@ -533,10 +533,7 @@
         </div>
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
-            <div style="display: flex; gap: 24px;">
-                <a class="lb-btn" id="lbFullRes" href="#" target="_blank">full resolution</a>
-                <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
-            </div>
+            <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
         </div>
     </div>
 
@@ -616,8 +613,7 @@
         // Image paths configuration
         const IMAGE_PATHS = {
             compressed: 'images/compressed/',
-            placeholders: 'images/placeholders/',
-            full: 'images/full/'
+            placeholders: 'images/placeholders/'
         };
 
         // Helper to get image paths
@@ -626,8 +622,7 @@
             const baseName = filename.replace(/\.[^.]+$/, '');
             return {
                 compressed: IMAGE_PATHS.compressed + folder + '/' + baseName + '.webp',
-                placeholder: IMAGE_PATHS.placeholders + folder + '/' + baseName + '.webp',
-                full: IMAGE_PATHS.full + folder + '/' + filename
+                placeholder: IMAGE_PATHS.placeholders + folder + '/' + baseName + '.webp'
             };
         }
 
@@ -825,7 +820,6 @@
         const lb = document.getElementById('lb');
         const lbImgWrap = document.getElementById('lbImgWrap');
         const lbInfo = document.getElementById('lbInfo');
-        const lbFullRes = document.getElementById('lbFullRes');
         let lbSecId = null;
         let lbIndex = 0;
 
@@ -879,10 +873,6 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}`
                 : photo.title;
-
-            // Update full resolution link
-            const paths = getImagePaths(photo.src, sec.label);
-            lbFullRes.href = paths.full;
 
             // Collapse expanded info when changing images
             lbInfo.classList.remove('expanded');

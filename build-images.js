@@ -4,7 +4,6 @@ const path = require('path');
 
 const FULL_DIR = 'images/full';
 const PLACEHOLDER_DIR = 'images/placeholders';
-const COMPRESSED_DIR = 'images/compressed';
 
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
 
@@ -34,15 +33,11 @@ async function processImage(folder, image, index, total) {
 
     console.log(`[${index + 1}/${total}] Processing: ${folder}/${image}`);
 
-    // Ensure output directories exist
+    // Ensure output directory exists
     const placeholderDir = path.join(PLACEHOLDER_DIR, folder);
-    const compressedDir = path.join(COMPRESSED_DIR, folder);
 
     if (!fs.existsSync(placeholderDir)) {
         fs.mkdirSync(placeholderDir, { recursive: true });
-    }
-    if (!fs.existsSync(compressedDir)) {
-        fs.mkdirSync(compressedDir, { recursive: true });
     }
 
     // Generate placeholder (tiny, blurry, for loading state)
@@ -59,22 +54,6 @@ async function processImage(folder, image, index, total) {
         }
     } else {
         console.log(`   ○ Placeholder exists: ${baseName}.webp`);
-    }
-
-    // Generate compressed version (web-optimized)
-    const compressedOutput = path.join(compressedDir, `${baseName}.webp`);
-    if (!fs.existsSync(compressedOutput)) {
-        try {
-            await sharp(inputPath)
-                .resize(1920, null, { withoutEnlargement: true })
-                .webp({ quality: 82, effort: 6 })
-                .toFile(compressedOutput);
-            console.log(`   ✓ Compressed: ${baseName}.webp`);
-        } catch (err) {
-            console.error(`   ✗ Failed to create compressed: ${err.message}`);
-        }
-    } else {
-        console.log(`   ○ Compressed exists: ${baseName}.webp`);
     }
 }
 
@@ -120,7 +99,6 @@ async function main() {
 
     console.log('\n✓ Done!');
     console.log(`  Placeholders: ${PLACEHOLDER_DIR}/<folder>/`);
-    console.log(`  Compressed: ${COMPRESSED_DIR}/<folder>/`);
 }
 
 main().catch(console.error);
