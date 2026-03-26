@@ -202,6 +202,8 @@
             height: auto;
             transition: transform 0.2s;
             vertical-align: bottom;
+            aspect-ratio: 3/2;
+            object-fit: cover;
         }
 
         .grid-photo:hover img {
@@ -246,6 +248,8 @@
             height: auto;
             transition: transform 0.2s;
             vertical-align: bottom;
+            aspect-ratio: 65/24;
+            object-fit: cover;
         }
 
         .uw-item:hover img {
@@ -283,6 +287,7 @@
             border-radius: 10px;
             filter: blur(10px);
             transform: scale(1.05);
+            object-fit: cover;
         }
 
         /* When placeholder and image coexist, stack them */
@@ -734,11 +739,11 @@
             const section = document.getElementById('sec-' + secId);
             if (!section) return;
             const images = Array.from(section.querySelectorAll('img[data-src]'));
-            
+
             // Load images sequentially, one at a time from top to bottom
             function loadNextImage(index) {
                 if (index >= images.length) return;
-                
+
                 const img = images[index];
                 // Hide main image until loaded
                 img.style.opacity = '0';
@@ -755,7 +760,7 @@
                         img.style.transition = '';
                         const item = img.closest('.grid-photo, .uw-item');
                         if (item) spanItem(item);
-                        
+
                         // Load next image after this one is done
                         loadNextImage(index + 1);
                     }, 300);
@@ -775,7 +780,7 @@
                 img.src = img.dataset.src;
                 delete img.dataset.src;
             }
-            
+
             // Start loading from the first image
             loadNextImage(0);
         }
