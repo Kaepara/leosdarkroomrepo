@@ -517,7 +517,7 @@
 <body>
 
     <header>
-        <a class="site-name" href="#">leosdarkroom</a>
+        <a class="site-name" href="/">leosdarkroom</a>
         <nav>
             <button class="theme-toggle" id="themeToggle">dark</button>
         </nav>
@@ -733,7 +733,13 @@
         function loadSectionImages(secId) {
             const section = document.getElementById('sec-' + secId);
             if (!section) return;
-            section.querySelectorAll('img[data-src]').forEach(img => {
+            const images = Array.from(section.querySelectorAll('img[data-src]'));
+            
+            // Load images sequentially, one at a time from top to bottom
+            function loadNextImage(index) {
+                if (index >= images.length) return;
+                
+                const img = images[index];
                 // Hide main image until loaded
                 img.style.opacity = '0';
                 img.style.transition = 'opacity 0.3s ease, transform 0.2s';
@@ -749,6 +755,9 @@
                         img.style.transition = '';
                         const item = img.closest('.grid-photo, .uw-item');
                         if (item) spanItem(item);
+                        
+                        // Load next image after this one is done
+                        loadNextImage(index + 1);
                     }, 300);
                 };
 
@@ -758,12 +767,17 @@
                     if (placeholder && placeholder.classList.contains('placeholder')) {
                         placeholder.remove();
                     }
+                    // Load next image even if this one errors
+                    loadNextImage(index + 1);
                 }, { once: true });
 
                 // Trigger loading
                 img.src = img.dataset.src;
                 delete img.dataset.src;
-            });
+            }
+            
+            // Start loading from the first image
+            loadNextImage(0);
         }
 
         // ── Render sections and filter tabs ──
