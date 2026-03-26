@@ -633,7 +633,7 @@
 
         const SECTIONS = [
             {
-                id: 'all',
+                id: 'portfolio',
                 label: 'portfolio',
                 layout: 'grid',
                 photos: [
@@ -676,11 +676,23 @@
                 ]
             },
             {
-                id: 'ultrawide',
-                label: 'ultrawide',
+                id: 'waitakere-ranges',
+                label: 'waitakere ranges roadie',
                 layout: 'ultrawide',
                 photos: [
-                    { src: 'P1054011.JPEG', title: '', film: '', camera: 'Canon New F-1', lens: 'Canon FD 50mm f/1.4 S.S.C' },
+                    { src: 'IMG_7120.JPG', title: 'piha', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054311.JPG', title: 'boyfriends', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'IMG_7118.JPG', title: 'golden shore', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054253.JPG', title: 'shade', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'IMG_7119.JPG', title: 'halo', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054295.JPG', title: 'wonder', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054393.JPG', title: 'fall', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054128.JPG', title: 'crescent', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054113.JPG', title: 'catch', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054346.JPG', title: 'wind', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054211.JPG', title: 'trip 35', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054232.JPG', title: 'ponder', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054335.JPG', title: 'crashing', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                 ]
             },
         ];
@@ -720,7 +732,7 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, sec.label);
+                const el = makeEl(photo, sec.id);
 
                 item.appendChild(el);
 
@@ -837,7 +849,7 @@
             // Remove old image, keep arrow buttons
             lbImgWrap.querySelectorAll('img').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
-            const el = makeEl(photo, sec.label);
+            const el = makeEl(photo, sec.id);
 
             // Set up transitions - no fade for initial open, only for navigation
             if (!slideFrom) {
@@ -873,7 +885,7 @@
                 : photo.title;
 
             // Update full resolution link
-            const paths = getImagePaths(photo.src, sec.label);
+            const paths = getImagePaths(photo.src, sec.id);
             lbFullRes.href = paths.full;
 
             // Collapse expanded info when changing images
