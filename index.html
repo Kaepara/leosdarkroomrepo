@@ -740,18 +740,25 @@
                 if (index >= images.length) return;
 
                 const img = images[index];
-                // Hide main image until loaded
-                img.style.opacity = '0';
-                img.style.transition = 'opacity 0.3s ease, transform 0.2s';
+                const placeholder = img.previousElementSibling;
 
+                // Start with compressed image hidden underneath placeholder
+                img.style.opacity = '0';
+                
                 const showImage = () => {
+                    // Fade out placeholder while fading in compressed image
+                    img.style.transition = 'opacity 0.3s ease';
                     img.style.opacity = '1';
-                    setTimeout(() => {
-                        // Remove placeholder
-                        const placeholder = img.previousElementSibling;
-                        if (placeholder && placeholder.classList.contains('placeholder')) {
+                    
+                    if (placeholder && placeholder.classList.contains('placeholder')) {
+                        placeholder.style.transition = 'opacity 0.3s ease';
+                        placeholder.style.opacity = '0';
+                        setTimeout(() => {
                             placeholder.remove();
-                        }
+                        }, 300);
+                    }
+
+                    setTimeout(() => {
                         img.style.transition = '';
                         const item = img.closest('.grid-photo, .uw-item');
                         if (item) spanItem(item);
@@ -763,7 +770,6 @@
 
                 img.addEventListener('load', showImage, { once: true });
                 img.addEventListener('error', () => {
-                    const placeholder = img.previousElementSibling;
                     if (placeholder && placeholder.classList.contains('placeholder')) {
                         placeholder.remove();
                     }
@@ -771,7 +777,7 @@
                     loadNextImage(index + 1);
                 }, { once: true });
 
-                // Trigger loading
+                // Trigger loading (image loads underneath placeholder)
                 img.src = img.dataset.src;
                 delete img.dataset.src;
             }
