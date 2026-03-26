@@ -724,7 +724,8 @@
             const img = document.createElement('img');
             // Store the compressed image path but don't load yet
             img.dataset.src = paths.compressed;
-            img.alt = photo.title;
+            img.alt = ''; // Empty alt to prevent text showing while loading
+            img.dataset.title = photo.title; // Store title for later
             img.dataset.placeholder = paths.placeholder;
             return img;
         }
@@ -746,6 +747,9 @@
                 img.style.opacity = '0';
                 
                 const showImage = () => {
+                    // Set alt text now that image is loaded
+                    img.alt = img.dataset.title || '';
+                    
                     // Fade out placeholder while fading in compressed image
                     img.style.transition = 'opacity 0.3s ease';
                     img.style.opacity = '1';
