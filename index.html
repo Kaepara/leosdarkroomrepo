@@ -713,6 +713,26 @@
                     { src: 'P1053937.jpeg', title: 'pool', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                 ]
             },
+            {
+                id: 'yacht-party-ultrawide',
+                label: 'yacht party - ultrawides',
+                layout: 'ultrawide',
+                photos: [
+                    { src: 'P1043056.JPG', title: 'drag', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043413.JPG', title: 'lantern', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1042913.JPG', title: 'longing', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1042794.JPG', title: 'race', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1053575.JPG', title: 'tornado', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1042901.JPG', title: 'city of sails', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043398.JPG', title: 'crane', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043038.JPG', title: 'meeting', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043132.JPG', title: 'alone', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1053571.JPG', title: 'stumble', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043048.JPG', title: 'second hit', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1043186.JPG', title: 'explore', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                ]
+            },
+
         ];
 
         // ============================================================
@@ -745,15 +765,15 @@
 
                 // Start with compressed image hidden underneath placeholder
                 img.style.opacity = '0';
-                
+
                 const showImage = () => {
                     // Set alt text now that image is loaded
                     img.alt = img.dataset.title || '';
-                    
+
                     // Fade out placeholder while fading in compressed image
                     img.style.transition = 'opacity 0.3s ease';
                     img.style.opacity = '1';
-                    
+
                     if (placeholder && placeholder.classList.contains('placeholder')) {
                         placeholder.style.transition = 'opacity 0.3s ease';
                         placeholder.style.opacity = '0';
