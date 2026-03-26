@@ -683,9 +683,9 @@
                     { src: 'IMG_7120.JPG', title: 'piha', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'P1054311.JPG', title: 'boyfriends', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'IMG_7118.JPG', title: 'golden shore', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
+                    { src: 'P1054295.JPG', title: 'wonder', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'P1054253.JPG', title: 'shade', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'IMG_7119.JPG', title: 'halo', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
-                    { src: 'P1054295.JPG', title: 'wonder', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'P1054393.JPG', title: 'fall', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'P1054128.JPG', title: 'crescent', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
                     { src: 'P1054113.JPG', title: 'catch', camera: 'Lumix s5II', lens: 'Sigma 24-70mm f/2.8 DG DN ART II' },
@@ -781,10 +781,11 @@
             btn.textContent = sec.label;
             btn.dataset.id = sec.id;
             filterBar.appendChild(btn);
-            sectionsWrap.appendChild(buildSection(sec));
+            // Only build the first section initially - others load on demand
+            if (si === 0) {
+                sectionsWrap.appendChild(buildSection(sec));
+            }
         });
-
-        // No preloading needed - using compressed images only
 
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
@@ -794,7 +795,19 @@
             document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             btn.classList.add('active');
-            const activeSection = document.getElementById('sec-' + btn.dataset.id);
+
+            const secId = btn.dataset.id;
+            let activeSection = document.getElementById('sec-' + secId);
+
+            // Lazy load: build section if it doesn't exist yet
+            if (!activeSection) {
+                const sec = SECTIONS.find(s => s.id === secId);
+                activeSection = buildSection(sec);
+                sectionsWrap.appendChild(activeSection);
+                // Trigger masonry layout for newly built section
+                setTimeout(spanAll, 50);
+            }
+
             activeSection.classList.add('active');
         });
 
