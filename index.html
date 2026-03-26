@@ -277,12 +277,15 @@
         }
 
         .placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
             border-radius: 10px;
             filter: blur(10px);
-            transform: scale(1.05);
+            object-fit: cover;
         }
 
         .grid-photo,
@@ -290,11 +293,9 @@
             position: relative;
         }
 
-        .grid-photo .placeholder + img,
-        .uw-item .placeholder + img {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .grid-photo img:not(.placeholder),
+        .uw-item img:not(.placeholder) {
+            display: block;
             width: 100%;
             height: auto;
             transition: opacity 0.3s ease;
@@ -703,18 +704,18 @@
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
 
-                // Create placeholder
+                // Create main image first (controls layout size)
+                const el = makeEl(photo, sec.label);
+                el.style.opacity = '0';
+                item.appendChild(el);
+
+                // Create placeholder overlay
                 const placeholder = document.createElement('img');
                 placeholder.className = 'placeholder';
                 placeholder.src = getImagePaths(photo.src, sec.label).placeholder;
                 placeholder.alt = '';
                 placeholder.draggable = false;
                 item.appendChild(placeholder);
-
-                // Create main image (hidden until loaded)
-                const el = makeEl(photo, sec.label);
-                el.style.opacity = '0';
-                item.appendChild(el);
 
                 el.addEventListener('load', () => {
                     el.style.opacity = '1';
