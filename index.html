@@ -330,6 +330,7 @@
             transition: background-color 0.2s;
             touch-action: none;
             -ms-touch-action: none;
+            /* Firefox needs overflow hidden for touch transforms */
             overflow: hidden;
         }
 
@@ -364,6 +365,7 @@
             -moz-user-select: none;
             -webkit-user-select: none;
             will-change: transform;
+            /* Firefox needs explicit GPU layer for touch transforms */
             transform: translate3d(0, 0, 0);
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
@@ -531,7 +533,10 @@
         </div>
         <div class="lb-bar">
             <span class="lb-info" id="lbInfo"></span>
-            <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
+            <div style="display: flex; gap: 24px;">
+                <a class="lb-btn" id="lbFullRes" href="#" target="_blank">full resolution</a>
+                <button class="lb-btn theme-toggle" id="lbThemeToggle">dark</button>
+            </div>
         </div>
     </div>
 
@@ -586,8 +591,19 @@
         //  PORTFOLIO CONFIG — edit this to customise your portfolio
         //
         //  IMAGE FOLDER STRUCTURE:
-        //    images/compressed/<section>/  - Optimized web versions
-        //    images/placeholders/<section>/ - Tiny blurry previews
+        //    images/full/        - Original high-resolution images
+        //    images/compressed/  - Optimized web versions (auto-generated)
+        //    images/placeholders/ - Tiny blurry previews (auto-generated)
+        //
+        //  HOW TO ADD YOUR OWN IMAGES:
+        //  1. Put your original image files in images/full/
+        //  2. Run: npm run build-images (generates compressed + placeholders)
+        //  3. Add the filename to your section below
+        //
+        //  HOW TO ADD A NEW SECTION:
+        //  Copy one of the section objects below and add it to the
+        //  SECTIONS array. Set  layout: 'grid'  for normal photos,
+        //  or  layout: 'ultrawide'  for 65:24 panoramic images.
         //
         //  PHOTO FIELDS (all optional except src and title):
         //    src:    filename (e.g. 'my-photo.jpg')
@@ -600,16 +616,18 @@
         // Image paths configuration
         const IMAGE_PATHS = {
             compressed: 'images/compressed/',
-            placeholders: 'images/placeholders/'
+            placeholders: 'images/placeholders/',
+            full: 'images/full/'
         };
 
         // Helper to get image paths
-        function getImagePaths(filename, folder) {
+        function getImagePaths(filename) {
             // Convert filename to webp for compressed/placeholder versions
             const baseName = filename.replace(/\.[^.]+$/, '');
             return {
-                compressed: IMAGE_PATHS.compressed + folder + '/' + baseName + '.webp',
-                placeholder: IMAGE_PATHS.placeholders + folder + '/' + baseName + '.webp'
+                compressed: IMAGE_PATHS.compressed + baseName + '.webp',
+                placeholder: IMAGE_PATHS.placeholders + baseName + '.webp',
+                full: IMAGE_PATHS.full + filename
             };
         }
 
@@ -671,18 +689,23 @@
         //  END OF CONFIG — no need to edit below this line
         // ============================================================
 
-        function makeEl(photo, folder) {
-            const paths = getImagePaths(photo.src, folder);
+        function makeEl(photo, isUltrawide, forLightbox) {
+            const paths = getImagePaths(photo.src);
             const img = document.createElement('img');
+            // Always use compressed images
             img.src = paths.compressed;
             img.alt = photo.title;
             img.dataset.placeholder = paths.placeholder;
             return img;
         }
 
+        // No preloading or upgrading needed - using compressed images only
+
         // ── Render sections and filter tabs ──
         const filterBar = document.getElementById('filterBar');
         const sectionsWrap = document.getElementById('sectionsWrap');
+
+        // No image observer needed - using compressed images only
 
         function buildSection(sec) {
             const secEl = document.createElement('div');
@@ -697,7 +720,7 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, sec.label);
+                const el = makeEl(photo, isUw, false);
 
                 item.appendChild(el);
 
@@ -749,6 +772,8 @@
             sectionsWrap.appendChild(buildSection(sec));
         });
 
+        // No preloading needed - using compressed images only
+
         // ── Filter switching ──
         filterBar.addEventListener('click', e => {
             const btn = e.target.closest('.f-btn');
@@ -765,8 +790,7 @@
         // grid-auto-rows: 4px, row-gap: 0. Each item uses margin-bottom: 20px for gap.
         // Span = ceil(imageHeight / 4) + ceil(20 / 4) to include the margin in the span.
         function spanItem(item) {
-            // Get the main image, not the placeholder
-            const img = item.querySelector('img:not(.placeholder)');
+            const img = item.querySelector('img');
             if (!img || !img.naturalWidth) return;
             const colW = item.getBoundingClientRect().width;
             if (!colW) return;
@@ -782,7 +806,7 @@
         window.addEventListener('load', spanAll);
         window.addEventListener('resize', spanAll);
         document.addEventListener('load', e => {
-            if (e.target.tagName === 'IMG' && !e.target.classList.contains('placeholder')) {
+            if (e.target.tagName === 'IMG') {
                 const item = e.target.closest('.grid-photo');
                 if (item) spanItem(item);
             }
@@ -793,6 +817,7 @@
         const lb = document.getElementById('lb');
         const lbImgWrap = document.getElementById('lbImgWrap');
         const lbInfo = document.getElementById('lbInfo');
+        const lbFullRes = document.getElementById('lbFullRes');
         let lbSecId = null;
         let lbIndex = 0;
 
@@ -809,10 +834,11 @@
         function drawLb(slideFrom = null) {
             const sec = currentSec();
             const photo = sec.photos[lbIndex];
+            const isUw = sec.layout === 'ultrawide';
             // Remove old image, keep arrow buttons
             lbImgWrap.querySelectorAll('img').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
-            const el = makeEl(photo, sec.label);
+            const el = makeEl(photo, isUw, true);
 
             // Set up transitions - no fade for initial open, only for navigation
             if (!slideFrom) {
@@ -846,6 +872,10 @@
             lbInfo.textContent = meta
                 ? `${photo.title} — ${meta}`
                 : photo.title;
+
+            // Update full resolution link
+            const paths = getImagePaths(photo.src);
+            lbFullRes.href = paths.full;
 
             // Collapse expanded info when changing images
             lbInfo.classList.remove('expanded');
