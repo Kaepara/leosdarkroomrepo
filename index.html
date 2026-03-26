@@ -621,13 +621,13 @@
         };
 
         // Helper to get image paths
-        function getImagePaths(filename) {
+        function getImagePaths(filename, folder) {
             // Convert filename to webp for compressed/placeholder versions
             const baseName = filename.replace(/\.[^.]+$/, '');
             return {
-                compressed: IMAGE_PATHS.compressed + baseName + '.webp',
-                placeholder: IMAGE_PATHS.placeholders + baseName + '.webp',
-                full: IMAGE_PATHS.full + filename
+                compressed: IMAGE_PATHS.compressed + folder + '/' + baseName + '.webp',
+                placeholder: IMAGE_PATHS.placeholders + folder + '/' + baseName + '.webp',
+                full: IMAGE_PATHS.full + folder + '/' + filename
             };
         }
 
@@ -689,8 +689,8 @@
         //  END OF CONFIG — no need to edit below this line
         // ============================================================
 
-        function makeEl(photo, isUltrawide, forLightbox) {
-            const paths = getImagePaths(photo.src);
+        function makeEl(photo, folder) {
+            const paths = getImagePaths(photo.src, folder);
             const img = document.createElement('img');
             // Always use compressed images
             img.src = paths.compressed;
@@ -720,7 +720,7 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-                const el = makeEl(photo, isUw, false);
+                const el = makeEl(photo, sec.label);
 
                 item.appendChild(el);
 
@@ -834,11 +834,10 @@
         function drawLb(slideFrom = null) {
             const sec = currentSec();
             const photo = sec.photos[lbIndex];
-            const isUw = sec.layout === 'ultrawide';
             // Remove old image, keep arrow buttons
             lbImgWrap.querySelectorAll('img').forEach(el => el.remove());
             // Insert image before arrows so it sits behind them in stacking
-            const el = makeEl(photo, isUw, true);
+            const el = makeEl(photo, sec.label);
 
             // Set up transitions - no fade for initial open, only for navigation
             if (!slideFrom) {
@@ -874,7 +873,7 @@
                 : photo.title;
 
             // Update full resolution link
-            const paths = getImagePaths(photo.src);
+            const paths = getImagePaths(photo.src, sec.label);
             lbFullRes.href = paths.full;
 
             // Collapse expanded info when changing images
