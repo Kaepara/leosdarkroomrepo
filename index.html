@@ -277,15 +277,12 @@
         }
 
         .placeholder {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
+            height: auto;
             display: block;
             border-radius: 10px;
             filter: blur(10px);
-            object-fit: cover;
+            transform: scale(1.05);
         }
 
         .grid-photo,
@@ -293,12 +290,13 @@
             position: relative;
         }
 
-        .grid-photo img:not(.placeholder),
-        .uw-item img:not(.placeholder) {
-            display: block;
+        .grid-photo .placeholder + img,
+        .uw-item .placeholder + img {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: auto;
-            transition: opacity 0.3s ease;
         }
 
         /* ── LIGHTBOX ── */
@@ -703,29 +701,40 @@
                 const item = document.createElement('div');
                 item.className = isUw ? 'uw-item' : 'grid-photo';
                 item.style.animationDelay = `${pi * 0.04}s`;
-
-                // Create main image first (controls layout size)
                 const el = makeEl(photo, sec.label);
-                el.style.opacity = '0';
+
                 item.appendChild(el);
 
-                // Create placeholder overlay
-                const placeholder = document.createElement('img');
-                placeholder.className = 'placeholder';
-                placeholder.src = getImagePaths(photo.src, sec.label).placeholder;
-                placeholder.alt = '';
-                placeholder.draggable = false;
-                item.appendChild(placeholder);
+                // Check if already loaded (cached) - if so, no placeholder needed
+                if (el.complete && el.naturalWidth > 0) {
+                    // Already loaded, just show it
+                } else {
+                    // Create placeholder using tiny blurry image
+                    const placeholder = document.createElement('img');
+                    placeholder.className = 'placeholder';
+                    placeholder.src = getImagePaths(photo.src, sec.label).placeholder;
+                    placeholder.alt = '';
+                    placeholder.draggable = false;
+                    item.insertBefore(placeholder, el);
 
-                el.addEventListener('load', () => {
-                    el.style.opacity = '1';
-                    placeholder.remove();
-                    spanItem(item);
-                }, { once: true });
+                    // Hide main image until loaded
+                    el.style.opacity = '0';
+                    el.style.transition = 'opacity 0.3s ease, transform 0.2s';
 
-                el.addEventListener('error', () => {
-                    placeholder.remove();
-                }, { once: true });
+                    const showImage = () => {
+                        el.style.opacity = '1';
+                        setTimeout(() => {
+                            placeholder.remove();
+                            el.style.transition = '';
+                            spanItem(item);
+                        }, 300);
+                    };
+
+                    el.addEventListener('load', showImage, { once: true });
+                    el.addEventListener('error', () => {
+                        placeholder.remove();
+                    }, { once: true });
+                }
 
                 item.addEventListener('click', () => openLb(sec.id, pi));
                 listEl.appendChild(item);
